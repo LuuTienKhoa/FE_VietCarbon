@@ -1,50 +1,134 @@
-# Welcome to your Expo app 👋
+# VietCarbon 🌱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Ứng dụng đo lường và giảm thiểu CO₂ cá nhân**
 
-## Get started
+VietCarbon là ứng dụng di động giúp bạn theo dõi, tính toán và giảm thiểu dấu chân carbon cá nhân thông qua các hoạt động hàng ngày.
 
-1. Install dependencies
+## ✨ Tính năng chính
 
+### 📊 **Theo dõi dấu chân carbon**
+- Tính toán lượng CO₂ theo các hoạt động: giao thông, năng lượng, ăn uống, nhựa, nước
+- Dashboard trực quan hiển thị tổng CO₂ và so sánh với mức trung bình Việt Nam
+- Phân tích chi tiết theo từng loại hoạt động
+
+### 🚗 **Giao thông**
+- Xe máy, ô tô, xe buýt, tàu hỏa, máy bay
+- Xe đạp và đi bộ (0 CO₂)
+- Tính toán dựa trên quãng đường di chuyển
+
+### ⚡ **Năng lượng**
+- Điện tiêu thụ (kWh)
+- Gas và sưởi ấm
+- Theo dõi theo tháng
+
+### 🍽️ **Ăn uống**
+- Chế độ ăn: thịt, chay, thuần chay, hỗn hợp
+- Thực phẩm địa phương vs nhập khẩu
+- Lãng phí thức ăn
+
+### 🥤 **Nhựa & Nước**
+- Đồ nhựa dùng một lần
+- Bao bì, chai nhựa, túi nhựa
+- Nước máy vs nước đóng chai
+
+### 💡 **Gợi ý hành động**
+- 14+ hành động cụ thể để giảm phát thải
+- Phân loại theo độ khó, chi phí, tác động
+- Ước tính CO₂ tiết kiệm được
+
+### 🏆 **Gamification**
+- Hệ thống điểm thưởng
+- Thử thách hàng ngày/tuần/tháng
+- Cộng đồng chia sẻ thành tích
+
+## 🛠️ Công nghệ sử dụng
+
+- **React Native** với **Expo SDK 54**
+- **TypeScript** cho type safety
+- **Expo Router** cho navigation
+- **React Native Reanimated** cho animations
+- **Material Icons** & **SF Symbols** cho icons
+
+## 🚀 Cài đặt và chạy
+
+1. **Cài đặt dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+2. **Khởi động ứng dụng**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. **Chạy trên thiết bị**
+   - Quét QR code bằng Expo Go (Android/iOS)
+   - Hoặc chạy trên emulator/simulator
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📱 Cấu trúc ứng dụng
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+```
+app/
+├── (tabs)/
+│   ├── index.tsx      # Dashboard chính
+│   ├── track.tsx      # Theo dõi hoạt động
+│   ├── suggestions.tsx # Gợi ý giảm CO₂
+│   └── challenges.tsx  # Thử thách
+├── login.tsx          # Đăng nhập
+├── register.tsx       # Đăng ký
+└── modal.tsx          # Modal
 
-## Get a fresh project
+components/
+├── carbon-activity-form.tsx  # Form thêm hoạt động
+├── themed-text.tsx          # Text component
+├── themed-view.tsx          # View component
+└── ui/                      # UI components
 
-When you're ready, run:
+types/
+└── carbon.ts               # TypeScript types
 
-```bash
-npm run reset-project
+utils/
+└── carbon-calculator.ts    # Logic tính toán CO₂
+
+constants/
+├── theme.ts               # Theme colors
+└── carbon-factors.ts      # Hệ số phát thải CO₂
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🌍 Hệ số phát thải CO₂
 
-## Learn more
+Ứng dụng sử dụng các hệ số phát thải được nghiên cứu cho Việt Nam:
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Giao thông**: Xe máy (0.072 kg/km), Ô tô (0.192 kg/km)
+- **Năng lượng**: Điện (0.0005 kg/kWh), Gas (0.202 kg/m³)
+- **Thực phẩm**: Thịt (27 kg/kg), Chay (2.9 kg/kg)
+- **Nhựa**: Nhựa dùng 1 lần (3.5 kg/kg)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🎯 Mục tiêu
 
-## Join the community
+- **Mục tiêu 2030**: 2.0 tấn CO₂/năm/người
+- **Mục tiêu 2050**: 0.5 tấn CO₂/năm/người
+- **Trung bình VN hiện tại**: 2.3 tấn CO₂/năm/người
 
-Join our community of developers creating universal apps.
+## 🤝 Đóng góp
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Chúng tôi hoan nghênh mọi đóng góp để cải thiện ứng dụng:
+
+1. Fork repository
+2. Tạo feature branch
+3. Commit changes
+4. Push và tạo Pull Request
+
+## 📄 License
+
+MIT License - xem file [LICENSE](LICENSE) để biết thêm chi tiết.
+
+## 📞 Liên hệ
+
+- **Email**: contact@vietcarbon.app
+- **Website**: https://vietcarbon.app
+- **GitHub**: https://github.com/vietcarbon/app
+
+---
+
+**Cùng nhau xây dựng một tương lai xanh hơn! 🌱**

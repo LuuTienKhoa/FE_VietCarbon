@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "viet-carbon",
+    "name": "VietCarbon",
     "slug": "viet-carbon",
     "version": "1.0.0",
+    "description": "Ứng dụng đo lường và giảm thiểu CO₂ cá nhân",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.jpg",
     "scheme": "vietcarbon",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
