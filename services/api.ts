@@ -135,6 +135,12 @@ export interface TrafficUsage {
   cO2emission: number;
 }
 
+export interface TrafficUsageDto {
+  id: number;
+  date: string;
+  cO2Emission: number;
+}
+
 export interface FoodItem {
   id: number;
   foodCategory: FoodCategory;
@@ -149,6 +155,20 @@ export interface FoodUsage {
   cO2emission: number;
   score: number;
   foodItems?: FoodItem[];
+}
+
+export interface FoodItemDto {
+  id: number;
+  foodCategory?: string;
+  weight: number;
+}
+
+export interface FoodUsageDto {
+  id: number;
+  date: string;
+  cO2Emission: number;
+  score: number;
+  foodItems?: FoodItemDto[];
 }
 
 export interface PlasticItem {
@@ -166,12 +186,32 @@ export interface PlasticUsage {
   plasticItems?: PlasticItem[];
 }
 
+export interface PlasticItemDto {
+  id: number;
+  plasticCategory?: string;
+  weight: number;
+}
+
+export interface PlasticUsageDto {
+  id: number;
+  date: string;
+  cO2Emission: number;
+  plasticItems?: PlasticItemDto[];
+}
+
 export interface EnergyUsage {
   id: number;
   activityId: number;
   date: string;
   electricityconsumption: number;
   cO2emission: number;
+}
+
+export interface EnergyUsageDto {
+  id: number;
+  date: string;
+  electricityConsumption: number;
+  cO2Emission: number;
 }
 
 export interface UserActivities {
@@ -190,14 +230,32 @@ export interface UserActivities {
   user?: User;
 }
 
+export interface UserActivitiesDto {
+  id: number;
+  userId: number;
+  date: string;
+  totalCO2Emission: number;
+  plasticUsage?: PlasticUsageDto;
+  trafficUsage?: TrafficUsageDto;
+  foodUsage?: FoodUsageDto;
+  energyUsage?: EnergyUsageDto;
+}
+
 // Challenge Types (matching OpenAPI spec)
 export interface Challenge {
   id: number;
   name?: string;
   description?: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
   isComplete: boolean;
+}
+
+export interface ChallengeRequest {
+  name?: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface ChallengeProgress {
@@ -206,7 +264,7 @@ export interface ChallengeProgress {
   challengeId: number;
   progress: number;
   description?: string;
-  finishDate?: string;
+  finishDate: string;
   isComplete: boolean;
   score: number;
   user?: User;
@@ -239,6 +297,33 @@ export interface CreateTransactionRequest {
 export interface UpdateTransactionRequest {
   status?: TransactionStatus;
   reason?: string;
+}
+
+// Notification Types (matching OpenAPI spec)
+export enum NotifyReason {
+  ACTIVITY_REMINDER = 1,
+  CHALLENGE_UPDATE = 2,
+  ACHIEVEMENT_UNLOCKED = 3,
+  GOAL_COMPLETED = 4,
+  WEEKLY_REPORT = 5,
+  MONTHLY_REPORT = 6,
+  SYSTEM_UPDATE = 7,
+  MAINTENANCE = 8,
+  PROMOTION = 9,
+  SECURITY_ALERT = 10,
+}
+
+export interface NotifyRequest {
+  title?: string;
+  content?: string;
+  reason: NotifyReason;
+}
+
+export interface NotifyUpdateRequest {
+  title?: string;
+  content?: string;
+  reason: NotifyReason;
+  isActive: boolean;
 }
 
 // Webhook Types (matching OpenAPI spec)
@@ -334,7 +419,7 @@ class ApiService {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
-        headers: Object.fromEntries(response.headers.entries()),
+        headers: response.headers,
       });
 
       if (!response.ok) {
@@ -472,7 +557,7 @@ class ApiService {
     return this.request<Challenge[]>('/Challenge');
   }
 
-  async createChallenge(challenge: Omit<Challenge, 'id'>): Promise<ApiResponse<Challenge>> {
+  async createChallenge(challenge: ChallengeRequest): Promise<ApiResponse<Challenge>> {
     return this.request<Challenge>('/Challenge', {
       method: 'POST',
       body: JSON.stringify(challenge),
@@ -512,9 +597,194 @@ class ApiService {
     return this.request<ChallengeProgress>(`/ChallengeProgress/${id}`);
   }
 
+  async updateChallengeProgress(id: number, progress: ChallengeProgress): Promise<ApiResponse<ChallengeProgress>> {
+    return this.request<ChallengeProgress>(`/ChallengeProgress/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(progress),
+    });
+  }
+
+  async deleteChallengeProgress(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/ChallengeProgress/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Energy Usage Methods
   async getEnergyUsage(): Promise<ApiResponse<EnergyUsage[]>> {
     return this.request<EnergyUsage[]>('/EnergyUsage');
+  }
+
+  async createEnergyUsage(energyUsage: EnergyUsageDto): Promise<ApiResponse<EnergyUsage>> {
+    return this.request<EnergyUsage>('/EnergyUsage', {
+      method: 'POST',
+      body: JSON.stringify(energyUsage),
+    });
+  }
+
+  async getEnergyUsageById(id: number): Promise<ApiResponse<EnergyUsage>> {
+    return this.request<EnergyUsage>(`/EnergyUsage/${id}`);
+  }
+
+  async updateEnergyUsage(id: number, energyUsage: EnergyUsageDto): Promise<ApiResponse<EnergyUsage>> {
+    return this.request<EnergyUsage>(`/EnergyUsage/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(energyUsage),
+    });
+  }
+
+  async deleteEnergyUsage(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/EnergyUsage/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getEnergyUsageByUser(userId: number): Promise<ApiResponse<EnergyUsage[]>> {
+    return this.request<EnergyUsage[]>(`/EnergyUsage/user/${userId}`);
+  }
+
+  // Food Usage Methods
+  async getFoodUsage(id?: number): Promise<ApiResponse<FoodUsage[]>> {
+    const endpoint = id ? `/FoodUsage?id=${id}` : '/FoodUsage';
+    return this.request<FoodUsage[]>(endpoint);
+  }
+
+  async createFoodUsage(foodUsage: FoodUsageDto): Promise<ApiResponse<FoodUsage>> {
+    return this.request<FoodUsage>('/FoodUsage', {
+      method: 'POST',
+      body: JSON.stringify(foodUsage),
+    });
+  }
+
+  async getFoodUsageByUser(userId: number): Promise<ApiResponse<FoodUsage[]>> {
+    return this.request<FoodUsage[]>(`/FoodUsage/${userId}`);
+  }
+
+  async updateFoodUsage(id: number, foodUsage: FoodUsageDto): Promise<ApiResponse<FoodUsage>> {
+    return this.request<FoodUsage>(`/FoodUsage/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(foodUsage),
+    });
+  }
+
+  async deleteFoodUsage(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/FoodUsage/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Plastic Usage Methods
+  async createPlasticUsage(plasticUsage: PlasticUsageDto): Promise<ApiResponse<PlasticUsage>> {
+    return this.request<PlasticUsage>('/PlasticUsage', {
+      method: 'POST',
+      body: JSON.stringify(plasticUsage),
+    });
+  }
+
+  async getPlasticUsageById(id: number): Promise<ApiResponse<PlasticUsage>> {
+    return this.request<PlasticUsage>(`/PlasticUsage/${id}`);
+  }
+
+  async updatePlasticUsage(id: number, plasticUsage: PlasticUsageDto): Promise<ApiResponse<PlasticUsage>> {
+    return this.request<PlasticUsage>(`/PlasticUsage/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(plasticUsage),
+    });
+  }
+
+  async deletePlasticUsage(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/PlasticUsage/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getPlasticUsageByUser(userId: number): Promise<ApiResponse<PlasticUsage[]>> {
+    return this.request<PlasticUsage[]>(`/PlasticUsage/user/${userId}`);
+  }
+
+  // Traffic Usage Methods
+  async createTrafficUsage(trafficUsage: TrafficUsageDto): Promise<ApiResponse<TrafficUsage>> {
+    return this.request<TrafficUsage>('/TrafficUsage', {
+      method: 'POST',
+      body: JSON.stringify(trafficUsage),
+    });
+  }
+
+  async getTrafficUsageById(id: number): Promise<ApiResponse<TrafficUsage>> {
+    return this.request<TrafficUsage>(`/TrafficUsage/${id}`);
+  }
+
+  async updateTrafficUsage(id: number, trafficUsage: TrafficUsageDto): Promise<ApiResponse<TrafficUsage>> {
+    return this.request<TrafficUsage>(`/TrafficUsage/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(trafficUsage),
+    });
+  }
+
+  async deleteTrafficUsage(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/TrafficUsage/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getTrafficUsageByUser(userId: number): Promise<ApiResponse<TrafficUsage[]>> {
+    return this.request<TrafficUsage[]>(`/TrafficUsage/user/${userId}`);
+  }
+
+  // User Activities Methods
+  async getUserActivitiesByUserId(userId: number): Promise<ApiResponse<UserActivities[]>> {
+    return this.request<UserActivities[]>(`/UserActivities/UserId?userId=${userId}`);
+  }
+
+  // Notification Methods
+  async createNotification(notification: NotifyRequest): Promise<ApiResponse<any>> {
+    return this.request<any>('/Notify', {
+      method: 'POST',
+      body: JSON.stringify(notification),
+    });
+  }
+
+  async getNotifications(): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>('/Notify');
+  }
+
+  async getNotification(id: number): Promise<ApiResponse<any>> {
+    return this.request<any>(`/Notify/${id}`);
+  }
+
+  async updateNotification(id: number, notification: NotifyUpdateRequest): Promise<ApiResponse<any>> {
+    return this.request<any>(`/Notify/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(notification),
+    });
+  }
+
+  async deleteNotification(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/Notify/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getActiveNotifications(): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>('/Notify/active');
+  }
+
+  async getNotificationsByReason(reason: NotifyReason): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>(`/Notify/reason/${reason}`);
+  }
+
+  async getNotificationsPaged(page: number = 1, pageSize: number = 10): Promise<ApiResponse<any>> {
+    return this.request<any>(`/Notify/paged?page=${page}&pageSize=${pageSize}`);
+  }
+
+  async deactivateNotification(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>(`/Notify/${id}/deactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getNotificationReasons(): Promise<ApiResponse<any>> {
+    return this.request<any>('/Notify/reasons');
   }
 
   // Recommendation Methods
@@ -541,10 +811,15 @@ class ApiService {
     PageSize?: number;
   }): Promise<ApiResponse<any[]>> {
     const qs = params
-      ? '?' + new URLSearchParams(Object.entries(params).reduce((acc, [k, v]) => {
-          if (v !== undefined && v !== null) acc[k] = String(v);
-          return acc;
-        }, {} as Record<string, string>)).toString()
+      ? '?' + new URLSearchParams(
+          Object.keys(params).reduce((acc, k) => {
+            const v = params[k as keyof typeof params];
+            if (v !== undefined && v !== null) {
+              acc[k] = String(v);
+            }
+            return acc;
+          }, {} as Record<string, string>)
+        ).toString()
       : '';
     return this.request<any[]>(`/Transaction${qs}`);
   }

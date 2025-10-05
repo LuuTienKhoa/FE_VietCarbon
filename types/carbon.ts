@@ -31,13 +31,45 @@ export type ActivityCategory =
 
 // Backend API Types (re-exported from services/api.ts for consistency)
 export type {
-    Challenge,
-    ChallengeProgress, EnergyUsage, EnergyUsageInputModel, FoodItem, FoodItemInputModel, FoodUsage, FoodUsageInputModel, LoginRequest, PlasticItem, PlasticItemInputModel, PlasticUsage, PlasticUsageInputModel, RegisterRequest, TrafficUsage, TrafficUsageInputModel, UpgradeRequest, User, UserActivities, UserActivitiesInputModel, WebhookData, WebhookType
+    Challenge, ChallengeProgress, ChallengeRequest, EnergyUsage,
+    EnergyUsageDto,
+    EnergyUsageInputModel,
+    FoodItem,
+    FoodItemDto,
+    FoodItemInputModel,
+    FoodUsage,
+    FoodUsageDto,
+    FoodUsageInputModel,
+    LoginRequest,
+    NotifyRequest,
+    NotifyUpdateRequest,
+    PlasticItem,
+    PlasticItemDto,
+    PlasticItemInputModel,
+    PlasticUsage,
+    PlasticUsageDto,
+    PlasticUsageInputModel,
+    RegisterRequest,
+    TrafficUsage,
+    TrafficUsageDto,
+    TrafficUsageInputModel,
+    UpgradeRequest,
+    User,
+    UserActivities,
+    UserActivitiesDto,
+    UserActivitiesInputModel,
+    WebhookData,
+    WebhookType
 } from '@/services/api';
 
 export {
     FoodCategory,
-    PlasticCategory, SubscriptionType, TrafficCategory, UpgradePlan, UserRole
+    NotifyReason,
+    PlasticCategory,
+    SubscriptionType,
+    TrafficCategory,
+    UpgradePlan,
+    UserRole
 } from '@/services/api';
 
 export interface CarbonEmissionFactor {

@@ -9,7 +9,7 @@ const ENV_API = process.env.EXPO_PUBLIC_API_BASE_URL;
 // Device-aware localhost fallbacks
 const LOCALHOST = Platform.select({
   ios: 'http://localhost:5099',
-  android: 'http://10.0.2.2:5099', // Android Emulator maps host machine localhost
+  android: 'http://localhost:5099', // Android Emulator maps host machine localhost
   default: 'http://localhost:5099',
 });
 
