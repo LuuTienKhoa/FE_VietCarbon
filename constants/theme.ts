@@ -5,25 +5,37 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#4CAF50'; // Green for environmental theme
+const tintColorDark = '#81C784'; // Light green for dark mode
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#2E3A3A', // Dark green-gray for text
+    background: '#F8FFF8', // Very light green background
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: '#4CAF50', // Green icons
+    tabIconDefault: '#81C784', // Light green for unselected
     tabIconSelected: tintColorLight,
+    card: '#FFFFFF', // White cards
+    border: '#E8F5E8', // Light green borders
+    accent: '#2E7D32', // Dark green for accents
+    success: '#4CAF50', // Success green
+    warning: '#FF9800', // Orange for warnings
+    error: '#F44336', // Red for errors
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#E8F5E8', // Light green text
+    background: '#1B2F1B', // Dark green background
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#81C784', // Light green icons
+    tabIconDefault: '#4CAF50', // Green for unselected
     tabIconSelected: tintColorDark,
+    card: '#2E3A3A', // Dark green cards
+    border: '#4CAF50', // Green borders
+    accent: '#81C784', // Light green for accents
+    success: '#4CAF50', // Success green
+    warning: '#FF9800', // Orange for warnings
+    error: '#F44336', // Red for errors
   },
 };
 

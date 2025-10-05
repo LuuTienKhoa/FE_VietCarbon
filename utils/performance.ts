@@ -112,8 +112,8 @@ export function useRenderPerformance(componentName: string) {
 export function useMemoryMonitor() {
   useEffect(() => {
     const interval = setInterval(() => {
-      if (performance.memory) {
-        const memory = performance.memory;
+      if ('memory' in performance && performance.memory) {
+        const memory = (performance as any).memory;
         const usedMB = memory.usedJSHeapSize / 1024 / 1024;
         const totalMB = memory.totalJSHeapSize / 1024 / 1024;
         

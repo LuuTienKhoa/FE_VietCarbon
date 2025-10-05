@@ -1,10 +1,13 @@
 {
-  "extends": "@expo/tsconfig.base",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "target": "ES2020",
+    "module": "esnext",
     "lib": ["ES2020", "DOM"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": [
         "./*"

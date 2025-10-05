@@ -18,6 +18,7 @@ const MAPPING: IconMapping = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
   'plus.circle.fill': 'add-circle',
   'lightbulb.fill': 'lightbulb',
   'trophy.fill': 'emoji-events',
@@ -28,6 +29,16 @@ const MAPPING: IconMapping = {
   'restaurant.fill': 'restaurant',
   'water.fill': 'water-drop',
   'recycle.fill': 'recycling',
+  'checkmark.circle.fill': 'check-circle',
+  'checkmark.seal.fill': 'verified',
+  'location.fill': 'location-on',
+  'gearshape.fill': 'settings',
+  'person.crop.circle': 'account-circle',
+  'creditcard.fill': 'credit-card',
+  'questionmark.circle': 'help',
+  'envelope.fill': 'email',
+  'rectangle.portrait.and.arrow.right': 'logout',
+  'line.3.horizontal': 'menu',
 };
 
 /**

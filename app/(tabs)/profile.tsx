@@ -3,7 +3,6 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -44,11 +43,15 @@ export default function ProfileScreen() {
         {[
           { icon: 'gearshape.fill', label: 'Cài đặt' },
           { icon: 'person.crop.circle', label: 'Thông tin cá nhân' },
-          { icon: 'creditcard.fill', label: 'Gói và thanh toán' },
+          { icon: 'creditcard.fill', label: 'Gói và thanh toán', route: '/vip-packages' },
           { icon: 'questionmark.circle', label: 'Hỗ trợ' },
           { icon: 'envelope.fill', label: 'Gửi phản hồi' },
-        ].map((item) => (
-          <TouchableOpacity key={item.label} style={[styles.item, { backgroundColor: '#e6fcd9' }]}> 
+        ].map((item: any) => (
+          <TouchableOpacity 
+            key={item.label} 
+            style={[styles.item, { backgroundColor: '#e6fcd9' }]}
+            onPress={() => item.route && router.push(item.route as any)}
+          > 
             <IconSymbol size={22} name={item.icon as any} color={textColor} />
             <ThemedText style={styles.itemLabel}>{item.label}</ThemedText>
           </TouchableOpacity>
