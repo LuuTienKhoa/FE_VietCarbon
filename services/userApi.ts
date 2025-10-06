@@ -38,7 +38,7 @@ const toUser = (raw: any): User => ({
 });
 
 /** Bọc axios: luôn trả ApiResponse<T> (không throw ra ngoài) */
-const wrap = async <T>(call: () => Promise<any>): Promise<ApiResponse<T>> => {
+export const wrap = async <T>(call: () => Promise<any>): Promise<ApiResponse<T>> => {
   try {
     const { data } = await call();
 
@@ -78,7 +78,7 @@ async function login(payload: LoginRequest): Promise<ApiResponse<AuthPayload>> {
 
 async function register(payload: RegisterRequest): Promise<ApiResponse<AuthPayload>> {
   // BE nhận username → map sang userName nếu cần
-  const body = { ...payload, userName: payload.username ?? payload.userName };
+  const body = { ...payload, userName: payload.username ?? payload.username };
   const res = await wrap<any>(() => http.post('/User/register', body));
   return normalizeAuth(res);
 }
