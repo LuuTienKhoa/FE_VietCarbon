@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Badge, Button, Card, IconSymbol } from '@/components/ui';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -89,7 +89,9 @@ export default function VIPPackagesScreen() {
   };
 
   return (
+    
     <ScrollView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ThemedView style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -98,7 +100,7 @@ export default function VIPPackagesScreen() {
           <IconSymbol name="chevron.left" size={24} color="#666" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>
-          Gói VIP
+          VIP
         </ThemedText>
         <View style={styles.placeholder} />
       </ThemedView>
