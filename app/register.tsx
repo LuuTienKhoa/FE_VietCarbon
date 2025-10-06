@@ -1,8 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function RegisterScreen() {
@@ -19,15 +18,15 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!username || !email || !password) {
-      setError('Please fill all required fields');
+      setError('Vui lòng điền đầy đủ các trường bắt buộc');
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Mật khẩu không khớp');
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     setLoading(true);
@@ -41,15 +40,15 @@ export default function RegisterScreen() {
       });
       if (response.success) {
         Alert.alert(
-          'Registration Successful',
-          'Your account has been created. Please log in.',
+          'Đăng ký thành công',
+          'Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.',
           [{ text: 'OK', onPress: () => router.replace('/login') }]
         );
       } else {
-        setError(response.error || 'Registration failed');
+        setError(response.error || 'Đăng ký thất bại');
       }
     } catch (error) {
-      setError('An error occurred during registration');
+      setError('Đã xảy ra lỗi trong quá trình đăng ký');
     } finally {
       setLoading(false);
     }
@@ -64,17 +63,17 @@ export default function RegisterScreen() {
           resizeMode="contain"
         />
       </View>
-      <ThemedText style={styles.title}>Create an account</ThemedText>
+      <ThemedText style={styles.title}>Tạo tài khoản</ThemedText>
       <ThemedText style={styles.subtitle}>
-        Already have an account?{' '}
+        Đã có tài khoản?{' '}
         <Text style={{ color: primaryColor }} onPress={() => router.push('/login')}>
-          Log In
+          Đăng nhập
         </Text>
       </ThemedText>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       <TextInput
         style={styles.input}
-        placeholder="Full name"
+        placeholder="Họ và tên"
         placeholderTextColor="#888"
         value={username}
         onChangeText={setUsername}
@@ -82,7 +81,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Email/Phone number"
+        placeholder="Email/Số điện thoại"
         placeholderTextColor="#888"
         value={email}
         onChangeText={setEmail}
@@ -91,7 +90,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="Mật khẩu"
         placeholderTextColor="#888"
         value={password}
         onChangeText={setPassword}
@@ -99,7 +98,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Confirm password"
+        placeholder="Xác nhận mật khẩu"
         placeholderTextColor="#888"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -107,7 +106,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Phone number (optional)"
+        placeholder="Số điện thoại (tùy chọn)"
         placeholderTextColor="#888"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
@@ -117,7 +116,7 @@ export default function RegisterScreen() {
         <ActivityIndicator size="large" color={primaryColor} />
       ) : (
         <TouchableOpacity style={styles.signupButton} onPress={handleRegister}>
-          <Text style={styles.signupText}>Sign Up</Text>
+          <Text style={styles.signupText}>Đăng ký</Text>
         </TouchableOpacity>
       )}
     </ThemedView>

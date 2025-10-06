@@ -79,12 +79,12 @@ export default function LoginScreen() {
         <Text style={styles.brand}>VietCarbona</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Login to access your account</Text>
+        <Text style={styles.title}>Chào mừng trở lại</Text>
+        <Text style={styles.subtitle}>Đăng nhập để truy cập tài khoản của bạn</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <TextInput
           style={styles.input}
-          placeholder="Email/Phone number"
+          placeholder="Email/Số điện thoại"
           placeholderTextColor="#888"
           value={email}
           onChangeText={setEmail}
@@ -93,7 +93,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder="Mật khẩu"
           placeholderTextColor="#888"
           value={password}
           onChangeText={setPassword}
@@ -101,10 +101,10 @@ export default function LoginScreen() {
         />
         <View style={styles.row}>
           <TouchableOpacity>
-            <Text style={styles.link}>Show password</Text>
+            <Text style={styles.link}>Hiển thị mật khẩu</Text>
           </TouchableOpacity>
           <TouchableOpacity>
-            <Text style={styles.link}>Forgot password?</Text>
+            <Text style={styles.link}>Quên mật khẩu?</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.socialRow}>
@@ -114,20 +114,15 @@ export default function LoginScreen() {
               style={styles.socialIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Image
-              source={require("../assets/images/facebook.png")}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
+          
         </View>
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginText}>Log In</Text>
+          <Text style={styles.loginText}>Đăng nhập</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/register")}>
           <Text style={[styles.link, { marginTop: 18 }]}>
-            Don't have an account?{" "}
-            <Text style={{ fontWeight: "bold" }}>Sign Up</Text>
+            Chưa có tài khoản?{" "}
+            <Text style={{ fontWeight: "bold" }}>Đăng ký</Text>
           </Text>
         </TouchableOpacity>
       </View>
