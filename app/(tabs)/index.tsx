@@ -7,7 +7,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useActivityStore } from '@/stores/activityStore';
 import { CarbonCalculator } from '@/utils/carbon-calculator';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function DashboardScreen() {
@@ -191,7 +191,7 @@ export default function DashboardScreen() {
               </ThemedText>
             </ThemedView>
           ))
-        }
+       ) }
       </ThemedView>
 
       {/* Tips */}
