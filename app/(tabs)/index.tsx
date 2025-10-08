@@ -191,7 +191,7 @@ export default function DashboardScreen() {
               </ThemedText>
             </ThemedView>
           ))
-        )}
+        }
       </ThemedView>
 
       {/* Tips */}
@@ -241,6 +241,7 @@ const styles = StyleSheet.create({
   co2Display: {
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
   co2Value: {
     fontSize: 48,
