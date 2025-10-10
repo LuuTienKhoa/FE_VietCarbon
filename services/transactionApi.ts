@@ -54,5 +54,14 @@ async function update(id: number | string, payload: Partial<TransactionRequest>)
 async function remove(id: number | string): Promise<ApiResponse<null>> {
   return wrap<null>(() => http.delete(`/Transaction/${id}`));
 }
+export async function createPayment(amount: number) {
+  const res = await wrap<any>(() => http.post("/p", { amount }));
+  if (!res.success) return res;
+  const { transactionId, checkoutUrl } = res.data ?? {};
+  return { ...res, data: { transactionId, checkoutUrl } };
+}
 
-export const transactionApi = { list, getById, create, update, remove };
+export async function getStatus(id: number) {
+  return getById(id);
+}
+export const transactionApi = { list, getById, create, update, remove};

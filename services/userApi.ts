@@ -115,9 +115,8 @@ async function changePassword(payload: ChangePasswordRequest): Promise<ApiRespon
   return wrap<null>(() => http.post('/User/change-password', payload));
 }
 
-async function upgrade(payload: any): Promise<ApiResponse<User>> {
-  const res = await wrap<User>(() => http.post('/User/upgrade', payload));
-  return res.success ? { ...res, data: res.data ? toUser(res.data) : undefined } : res;
+export async function upgrade(plan: 1 | 2, returnUrl?: string, cancelUrl?: string) {
+  return wrap<any>(() => http.post("/User/upgrade", { plan, returnUrl, cancelUrl }));
 }
 
 async function updateRole(id: number | string, role: string): Promise<ApiResponse<User>> {

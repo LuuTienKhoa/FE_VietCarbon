@@ -1,15 +1,15 @@
 // app/(tabs)/profile.tsx
+import { ScreenWrapper } from '@/components/wrapper';
 import { User, apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { ThemedText } from '../../components/themed-text';
 import { ThemedView } from '../../components/themed-view';
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]}>
+     <ScreenWrapper containerStyle={{ ...styles.container, backgroundColor }}>
       {/* HEADER */}
       <ThemedView style={styles.header}>
         <View style={[styles.avatarWrapper, { backgroundColor: '#ffffff' }]}>
@@ -204,7 +204,7 @@ export default function ProfileScreen() {
           <ThemedText style={[styles.itemLabel, { color: '#F44336' }]}>Đăng xuất</ThemedText>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </ScreenWrapper>
   );
 }
 

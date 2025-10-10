@@ -140,7 +140,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   deleteUserActivity: async (id: number) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await apiService.deleteUserActivity(id);
+      // const response = await apiService.deleteUserActivity(id);
+      const response = await apiService.createUserActivity(activity);
       
       if (response.success) {
         set((state) => ({
