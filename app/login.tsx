@@ -1,19 +1,19 @@
 import { useFlashMessage } from "@/components/flash-message-provider";
 import { Loading } from "@/components/loading";
+import { apiService } from "@/services/api";
 import { useUserStore } from "@/stores/userStore";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { setAuthToken } from '../services/http';
-import { userApi } from "../services/userApi";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +35,7 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      const response = await userApi.login({ email, password });
+      const response = await apiService.user.login({ email, password });
       if (response.success && response.data) {
         const { token, user } = response.data;
         await AsyncStorage.setItem("auth_token", token);

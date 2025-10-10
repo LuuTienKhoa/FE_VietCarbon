@@ -7,6 +7,8 @@ export interface ChallengeProgress {
   challengeId: number;
   userId?: number;
   progress: number;
+  isComplete?: boolean;
+  score?: number;
   updatedAt?: string;
 }
 
@@ -21,6 +23,8 @@ const toProgress = (raw: any): ChallengeProgress => ({
   challengeId: Number(raw?.challengeId ?? 0),
   userId: raw?.userId,
   progress: Number(raw?.progress ?? 0),
+  isComplete: !!raw?.isComplete,
+  score: Number(raw?.score ?? 0),
   updatedAt: raw?.updatedAt,
 });
 

@@ -1,7 +1,4 @@
-import { energyUsageApi, EnergyUsageRequest } from '@/services/energyUsageApi';
-import { foodUsageApi, FoodUsageRequest } from '@/services/foodUsageApi';
-import { plasticUsageApi, PlasticUsageRequest } from '@/services/plasticUsageApi';
-import { trafficUsageApi, TrafficUsageRequest } from '@/services/trafficUsageApi';
+import { ApiResponse, apiService, EnergyUsageRequest, FoodUsageRequest, PlasticUsageRequest, TrafficUsageRequest, User } from '@/services/api';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,7 +12,6 @@ import {
 import Svg, { Circle, Path } from 'react-native-svg';
 import { ThemedText } from '../../components/themed-text';
 import { IconSymbol } from '../../components/ui/icon-symbol';
-import { ApiResponse, userApi, type User } from '../../services/userApi';
 
 // Hàm tiện ích để tính tổng CO2 cho một danh sách
 const calculateTotalCo2 = (data: any[] | undefined, fallbackKey: string, fallbackCoeff: number) => {
@@ -79,7 +75,7 @@ export default function MeasureScreen() {
 
   const fetchUser = async () => {
     try {
-      const res = await userApi.me();
+      const res = await apiService.user.me();
       if (res?.success && res?.data) setUser(res.data);
     } catch (e) {
       console.log('Không thể lấy thông tin user', e);
@@ -90,10 +86,10 @@ export default function MeasureScreen() {
     setLoading(true);
     try {
       const [traffic, food, energy, plastic] = await Promise.all([
-        trafficUsageApi.list(),
-        foodUsageApi.list(),
-        energyUsageApi.list(),
-        plasticUsageApi.list(),
+        apiService.trafficUsage.list(),
+        apiService.foodUsage.list(),
+        apiService.energyUsage.list(),
+        apiService.plasticUsage.list(),
       ]);
 
       const totalCo2 =
@@ -113,10 +109,10 @@ export default function MeasureScreen() {
   const fetchCategoryCo2 = async () => {
     try {
       const [traffic, food, energy, plastic] = await Promise.all([
-        trafficUsageApi.list(),
-        foodUsageApi.list(),
-        energyUsageApi.list(),
-        plasticUsageApi.list(),
+        apiService.trafficUsage.list(),
+        apiService.foodUsage.list(),
+        apiService.energyUsage.list(),
+        apiService.plasticUsage.list(),
       ]);
 
       return {
@@ -190,28 +186,28 @@ export default function MeasureScreen() {
             mode: form.vehicle,
             distanceKm: Number(form.distance),
           } as TrafficUsageRequest;
-          api = trafficUsageApi.create;
+          api = apiService.trafficUsage.create;
           break;
         case 'food':
           payload = {
             type: form.foodType,
             amount: Number(form.foodAmount),
           } as FoodUsageRequest;
-          api = foodUsageApi.create;
+          api = apiService.foodUsage.create;
           break;
         case 'energy':
           payload = {
             source: form.energySource,
             amount: Number(form.energyAmount),
           } as EnergyUsageRequest;
-          api = energyUsageApi.create;
+          api = apiService.energyUsage.create;
           break;
         case 'plastic':
           payload = {
             item: form.plasticType,
             quantity: Number(form.plasticQty),
           } as PlasticUsageRequest;
-          api = plasticUsageApi.create;
+          api = apiService.plasticUsage.create;
           break;
         default:
           throw new Error('Invalid type');

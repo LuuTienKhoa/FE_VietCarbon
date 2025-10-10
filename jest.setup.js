@@ -1,4 +1,4 @@
-import '@testing-library/react-native/extend-expect';
+// import '@testing-library/react-native/extend-expect';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -31,7 +31,7 @@ jest.mock('expo-haptics', () => ({
 }));
 
 // Mock React Native modules
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+// jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 
 // Mock fetch
 global.fetch = jest.fn();

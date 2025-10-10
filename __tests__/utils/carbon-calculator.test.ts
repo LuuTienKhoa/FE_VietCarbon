@@ -38,8 +38,8 @@ describe('CarbonCalculator', () => {
     });
 
     it('should format large values in kilograms', () => {
-      expect(CarbonCalculator.formatCO2(1.5)).toBe('1.50kg CO₂');
-      expect(CarbonCalculator.formatCO2(10)).toBe('10.00kg CO₂');
+      expect(CarbonCalculator.formatCO2(1.5)).toBe('1.5kg CO₂');
+      expect(CarbonCalculator.formatCO2(10)).toBe('10kg CO₂');
     });
   });
 

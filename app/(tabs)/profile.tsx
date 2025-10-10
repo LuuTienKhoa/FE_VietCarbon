@@ -1,19 +1,19 @@
 // app/(tabs)/profile.tsx
+import { User, apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { ThemedText } from '../../components/themed-text';
 import { ThemedView } from '../../components/themed-view';
 import { IconSymbol } from '../../components/ui/icon-symbol';
-import { userApi, type User } from '../../services/userApi';
 
 export default function ProfileScreen() {
   const backgroundColor = '#e6fcd9';
@@ -29,7 +29,7 @@ export default function ProfileScreen() {
     let alive = true;
     (async () => {
       try {
-        const res = await userApi.me(); // -> GET /api/User/me
+        const res = await apiService.user.me(); // -> GET /api/User/me
         if (!alive) return;
         if (res?.success && res?.data) {
           setUser(res.data);

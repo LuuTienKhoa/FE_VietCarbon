@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { userApi } from '@/services/userApi';
+import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -33,7 +33,7 @@ export default function RegisterScreen() {
     setLoading(true);
     setError('');
     try {
-      const response = await userApi.register({
+      const response = await apiService.user.register({
         username,
         email,
         password,
