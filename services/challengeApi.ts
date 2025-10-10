@@ -4,18 +4,19 @@ import { ApiResponse, wrap } from './userApi';
 
 export interface Challenge {
   id: number;
-  name?: string;
-  description?: string;
+  name: string;
+  description: string;
   startDate?: string;
   endDate?: string;
   isComplete?: boolean;
 }
 
 export interface ChallengeRequest {
-  name?: string;
-  description?: string;
+  name: string;
+  description: string;
   startDate?: string;
   endDate?: string;
+  isComplete?: boolean;
 }
 
 const toChallenge = (raw: any): Challenge => ({
@@ -38,18 +39,28 @@ async function getById(id: number | string): Promise<ApiResponse<Challenge>> {
   return res.success ? { ...res, data: res.data ? toChallenge(res.data) : undefined } : res;
 }
 
-async function create(payload: ChallengeRequest): Promise<ApiResponse<Challenge>> {
-  const res = await wrap<Challenge>(() => http.post('/Challenge', payload));
+async function create(payload: ChallengeRequest, token?: string): Promise<ApiResponse<Challenge>> {
+  const res = await wrap<Challenge>(() =>
+    http.post('/Challenge', payload, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+  );
   return res.success ? { ...res, data: res.data ? toChallenge(res.data) : undefined } : res;
 }
 
-async function update(id: number | string, payload: Partial<ChallengeRequest>): Promise<ApiResponse<Challenge>> {
-  const res = await wrap<Challenge>(() => http.put(`/Challenge/${id}`, payload));
+async function update(
+  id: number | string,
+  payload: Partial<ChallengeRequest>,
+  token?: string
+): Promise<ApiResponse<Challenge>> {
+  const res = await wrap<Challenge>(() =>
+    http.put(`/Challenge/${id}`, payload, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+  );
   return res.success ? { ...res, data: res.data ? toChallenge(res.data) : undefined } : res;
 }
 
-async function remove(id: number | string): Promise<ApiResponse<null>> {
-  return wrap<null>(() => http.delete(`/Challenge/${id}`));
+async function remove(id: number | string, token?: string): Promise<ApiResponse<null>> {
+  return wrap<null>(() =>
+    http.delete(`/Challenge/${id}`, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+  );
 }
 
 export const challengeApi = { list, getById, create, update, remove };

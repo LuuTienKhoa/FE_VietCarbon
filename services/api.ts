@@ -194,6 +194,7 @@ export const apiService = {
     update: transactionApi.update,
     remove: transactionApi.remove,
   },
+  
 
   // Convenience methods for common operations
   createUserActivity: async (activity: any) => {
@@ -241,11 +242,12 @@ export const apiService = {
   },
 };
 
+
 // Export individual services for backward compatibility
 export {
-    challengeApi,
-    challengeProgressApi,
-    energyUsageApi,
-    foodUsageApi, notifyApi, plasticUsageApi, recommendApi, trafficUsageApi, transactionApi, userActivitiesApi, userApi
+  challengeApi,
+  challengeProgressApi,
+  energyUsageApi,
+  foodUsageApi, notifyApi, plasticUsageApi, recommendApi, trafficUsageApi, transactionApi, userActivitiesApi, userApi
 };
 
