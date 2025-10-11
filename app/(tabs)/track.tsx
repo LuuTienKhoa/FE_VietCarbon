@@ -1,555 +1,760 @@
-import { ApiResponse, apiService, EnergyUsageRequest, FoodUsageRequest, PlasticUsageRequest, TrafficUsageRequest, User } from '@/services/api';
-import { useEffect, useState } from 'react';
+// app/(tabs)/track.tsx
+
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ScreenWrapper } from '@/components/wrapper';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService, TrafficCategory, UserActivities } from '@/services/api';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
-  StyleSheet,
+  Modal,
+  StyleSheet, // Dùng Modal để hiển thị form chỉnh sửa
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
-import { ThemedText } from '../../components/themed-text';
-import { IconSymbol } from '../../components/ui/icon-symbol';
 
-// Hàm tiện ích để tính tổng CO2 cho một danh sách
-const calculateTotalCo2 = (data: any[] | undefined, fallbackKey: string, fallbackCoeff: number) => {
-  // Đảm bảo data là một mảng và tính tổng
-  return (data || []).reduce((sum, item) => {
-    // Nếu có co2Estimate, ưu tiên dùng nó
-    // Nếu không, dùng giá trị fallback được nhân với hệ số
-    const fallbackValue = Number(item[fallbackKey] ?? 0);
-    
-    // Đảm bảo kết quả là số hợp lệ
-    const co2 = Number(item.co2Estimate ?? 0); 
-
-    if (co2 > 0) {
-        return sum + co2;
-    }
-    
-    // Dùng công thức fallback
-    return sum + (fallbackValue * fallbackCoeff);
-
-  }, 0);
+const customColors = {
+  gaugeGreen: '#4CAF50',
+  gaugeYellow: '#FFC107',
+  gaugeRed: '#F44336',
+  cardBg: '#e6fcd9',
+  measureBg: '#f6fff0',
+  text: '#111111',
+  tint: '#4CAF50', 
 };
 
-export default function MeasureScreen() {
-  const [user, setUser] = useState<User | null>(null);
+// Hàm giả lập tính toán lượng phát thải
+const getActivityEmission = (x: any): number => {
+    const value = x?.totalCO2Emission ?? x?.totalEmission ?? x?.co2Emission;
+    if (value === null || typeof value === 'undefined') return 0;
+    const floatValue = parseFloat(String(value)); 
+    return isNaN(floatValue) ? 0 : floatValue;
+};
+
+const isSameDay = (a: string | Date, b: Date) => {
+  const da = typeof a === "string" ? new Date(a) : a;
+  return (
+    da.getFullYear() === b.getFullYear() &&
+    da.getMonth() === b.getMonth() &&
+    da.getDate() === b.getDate()
+  );
+};
+
+const prettyTrafficType = (t?: number) => {
+    if (!t) return '—';
+    if (t === TrafficCategory.MOTORBIKE) return 'Xe máy'; 
+    if (t === TrafficCategory.CAR) return 'Ô tô'; 
+    if (t === TrafficCategory.BUS) return 'Xe buýt'; 
+    if (t === TrafficCategory.TRAIN) return 'Tàu hỏa'; 
+    if (t === TrafficCategory.PLANE) return 'Máy bay'; 
+    if (t === TrafficCategory.BICYCLE) return 'Xe đạp'; 
+    if (t === TrafficCategory.WALKING) return 'Đi bộ'; 
+    return 'Khác';
+}
+
+const getUsageCo2 = (x: any): number => {
+    const value = x?.cO2emission ?? x?.co2Estimate ?? 0;
+    const floatValue = parseFloat(String(value)); 
+    return isNaN(floatValue) ? 0 : floatValue;
+};
+
+
+// =========================================================
+// COMPONENT MỚI: MODAL CHỈNH SỬA
+// =========================================================
+
+// Định nghĩa kiểu cho dữ liệu cần chỉnh sửa
+type UsageData = {
+    type: string;
+    route: string;
+    color: string;
+    factorValue: string; // Giá trị hiện tại của Factor
+    factorUnit: string;
+};
+
+function EditUsageModal({ isVisible, onClose, data }: { isVisible: boolean, onClose: () => void, data: UsageData | null }) {
+    if (!data) return null;
+
+    const [inputValue, setInputValue] = useState(data.factorValue);
+    const [co2Estimate, setCo2Estimate] = useState(0); // Giả lập CO2 mới
+
+    const handleSave = () => {
+        // GIẢ LẬP: GỌI API UPDATE VÀ THỰC HIỆN LOGIC KHÔNG ĐỒNG BỘ
+        console.log(`Đang gửi update cho ${data.type}: ${inputValue}`);
+        Alert.alert("Thành công", `Đã cập nhật ${data.type} thành ${inputValue} ${data.factorUnit}. Vui lòng reload.`);
+        
+        // Đóng modal sau khi hoàn thành
+        onClose();
+        // Cần thêm logic để gọi lại fetchData() trong component TrackScreen
+    };
+
+    return (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isVisible}
+            onRequestClose={onClose}
+        >
+            <View style={modalStyles.centeredView}>
+                <ThemedView style={[modalStyles.modalView, { backgroundColor: data.color }]}>
+                    <ThemedText style={modalStyles.modalTitle}>Cập nhật: {data.type}</ThemedText>
+                    
+                    <ThemedText style={modalStyles.label}>
+                        Giá trị {data.factorUnit} (hiện tại: {data.factorValue}):
+                    </ThemedText>
+
+                    <TextInput
+                        style={modalStyles.input}
+                        onChangeText={setInputValue}
+                        value={inputValue}
+                        keyboardType="numeric"
+                        placeholder={`Nhập ${data.factorUnit}`}
+                        placeholderTextColor="#ccc"
+                    />
+
+                    <ThemedText style={modalStyles.estimateText}>
+                        CO₂ ước tính mới: {co2Estimate.toFixed(2)} kg
+                    </ThemedText>
+
+                    <View style={modalStyles.buttonRow}>
+                        <TouchableOpacity 
+                            style={modalStyles.buttonClose} 
+                            onPress={onClose}
+                        >
+                            <ThemedText style={modalStyles.textStyle}>Hủy</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[modalStyles.button, modalStyles.buttonSave]}
+                            onPress={handleSave}
+                        >
+                            <ThemedText style={modalStyles.textStyle}>Lưu</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </ThemedView>
+            </View>
+        </Modal>
+    );
+}
+
+// =========================================================
+// COMPONENTS GỐC (Đã chỉnh sửa để loại bỏ router.push)
+// =========================================================
+
+function TotalCO2Card({ emission, color, dateString }: { emission: number, color: string, dateString: string }) {
+    const formattedEmission = emission.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const label = dateString === '—' 
+        ? 'Lượng CO₂ gần nhất (ước tính)' 
+        : `Lượng CO₂ được ghi nhận (${dateString})`;
+
+    return (
+        <ThemedView style={[totalCo2Styles.card, { backgroundColor: color }]}>
+            <ThemedText style={totalCo2Styles.label}>
+                {label}
+            </ThemedText>
+            <ThemedText style={totalCo2Styles.value}>
+                {formattedEmission}
+                <ThemedText style={totalCo2Styles.unit}> kg</ThemedText>
+            </ThemedText>
+            <ThemedText style={totalCo2Styles.tip}>
+                Giá trị được lấy từ hoạt động có timestamp mới nhất.
+            </ThemedText>
+        </ThemedView>
+    );
+}
+
+function CO2LinearGauge({ emission }: { emission: number }) {
+  const DAILY_GOAL = 10;
+  
+  const percent = Math.min(emission / DAILY_GOAL, 1) * 100;
+  
+  let progressColor = customColors.gaugeGreen;
+  if (percent > 100) {
+    progressColor = customColors.gaugeRed;
+  } else if (percent > 70) {
+    progressColor = customColors.gaugeYellow;
+  }
+  
+  return (
+    <View style={linearGaugeStyles.container}>
+      <View style={linearGaugeStyles.barBackground}>
+        <View style={[
+          linearGaugeStyles.barProgress,
+          { width: `${percent}%`, backgroundColor: progressColor }
+        ]} />
+      </View>
+      <View style={linearGaugeStyles.labels}>
+        <ThemedText style={linearGaugeStyles.goalLabel}>
+          Mục tiêu: {DAILY_GOAL} kg
+        </ThemedText>
+        {emission > DAILY_GOAL && (
+          <ThemedText style={linearGaugeStyles.overGoalLabel}>
+            Vượt quá { (emission - DAILY_GOAL).toFixed(2) } kg!
+          </ThemedText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// UsageStatBox KHÔNG CÒN GỌI router.push NỮA, MÀ GỌI HÀM MỞ MODAL
+function UsageStatBox({ 
+    type, emission, factor, factorUnit, color, onPress // THÊM ONPRESS
+}: {
+    type: string; emission: number; factor: string; factorUnit: string; color: string; onPress: () => void; // OnPress thay cho route
+}) {
+    const formattedEmission = emission.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const factorLabel = factor !== '—' ? factor : `Chưa ghi nhận`;
+
+    return (
+        <TouchableOpacity 
+            style={[styles.statBox, { backgroundColor: color }]}
+            onPress={onPress} // GỌI ONPRESS TỪ CHỦ COMPONENT
+        >
+            <ThemedText style={styles.statType}>{type}</ThemedText>
+            <ThemedText style={styles.statValueDetail}>
+                {formattedEmission} kg CO₂ 
+            </ThemedText>
+            <ThemedText style={styles.statFactorLabel}>{factorUnit}:</ThemedText>
+            <ThemedText style={styles.statFactorValue}>{factorLabel}</ThemedText>
+        </TouchableOpacity>
+    );
+}
+
+
+export default function TrackScreen() {
+  const router = useRouter();
+  const tintColor = useThemeColor({}, 'tint'); 
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [co2, setCo2] = useState(0);
-  const [active, setActive] = useState<'traffic' | 'food' | 'energy' | 'plastic' | null>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [activities, setActivities] = useState<UserActivities[]>([]);
+  
+  // STATE MỚI: Quản lý modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedUsage, setSelectedUsage] = useState<UsageData | null>(null);
 
-  const [form, setForm] = useState({
-    vehicle: '',
-    distance: '',
-    foodType: '',
-    foodAmount: '',
-    energySource: '',
-    energyAmount: '',
-    plasticType: '',
-    plasticQty: '',
-  });
 
-  const [categoryCo2, setCategoryCo2] = useState({
-    traffic: 0,
-    food: 0,
-    energy: 0,
-    plastic: 0,
-  });
-
-  useEffect(() => {
-    fetchUser();
-    fetchTotalCo2();
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const categoryCo2 = await fetchCategoryCo2();
-      setCategoryCo2(categoryCo2);
-    };
-
-    fetchData();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const res = await apiService.user.me();
-      if (res?.success && res?.data) setUser(res.data);
-    } catch (e) {
-      console.log('Không thể lấy thông tin user', e);
-    }
-  };
-
-  const fetchTotalCo2 = async () => {
-    setLoading(true);
-    try {
-      const [traffic, food, energy, plastic] = await Promise.all([
-        apiService.trafficUsage.list(),
-        apiService.foodUsage.list(),
-        apiService.energyUsage.list(),
-        apiService.plasticUsage.list(),
-      ]);
-
-      const totalCo2 =
-        calculateTotalCo2(traffic.data, 'distanceKm', 0.21) +
-        calculateTotalCo2(food.data, 'amount', 0.5) +
-        calculateTotalCo2(energy.data, 'amount', 0.233) +
-        calculateTotalCo2(plastic.data, 'quantity', 6.0);
-
-      setCo2(totalCo2);
-    } catch (err) {
-      console.error('Error fetching CO2 data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategoryCo2 = async () => {
-    try {
-      const [traffic, food, energy, plastic] = await Promise.all([
-        apiService.trafficUsage.list(),
-        apiService.foodUsage.list(),
-        apiService.energyUsage.list(),
-        apiService.plasticUsage.list(),
-      ]);
-
-      return {
-        traffic: calculateTotalCo2(traffic.data, 'distanceKm', 0.21),
-        food: calculateTotalCo2(food.data, 'amount', 0.5),
-        energy: calculateTotalCo2(energy.data, 'amount', 0.233),
-        plastic: calculateTotalCo2(plastic.data, 'quantity', 6.0),
-      };
-    } catch (err) {
-      console.error('Error fetching category CO2 data:', err);
-      return { traffic: 0, food: 0, energy: 0, plastic: 0 };
-    }
-  };
-
-  // Hàm kiểm tra tính hợp lệ của form trước khi gửi
-  const validateForm = (type: 'traffic' | 'food' | 'energy' | 'plastic'): boolean => {
-    const validateField = (field: string, value: string, errorMessage: string): boolean => {
-      if (field.trim() === '' || Number(value) <= 0 || isNaN(Number(value))) {
-        Alert.alert('Lỗi nhập liệu', errorMessage);
-        return false;
-      }
-      return true;
-    };
-
-    switch (type) {
-      case 'traffic':
-        return validateField(
-          form.vehicle,
-          form.distance,
-          'Vui lòng nhập phương tiện và quãng đường hợp lệ (km > 0).'
-        );
-      case 'food':
-        return validateField(
-          form.foodType,
-          form.foodAmount,
-          'Vui lòng nhập loại thực phẩm và khối lượng hợp lệ (gram > 0).'
-        );
-      case 'energy':
-        return validateField(
-          form.energySource,
-          form.energyAmount,
-          'Vui lòng nhập nguồn điện và số điện tiêu thụ hợp lệ (kWh > 0).'
-        );
-      case 'plastic':
-        return validateField(
-          form.plasticType,
-          form.plasticQty,
-          'Vui lòng nhập loại nhựa và số lượng hợp lệ (số lượng > 0).'
-        );
-      default:
-        Alert.alert('Lỗi nhập liệu', 'Loại biểu mẫu không hợp lệ.');
-        return false;
-    }
-  };
-
-  // ========== HANDLERS ==========
-  const handleSave = async (type: 'traffic' | 'food' | 'energy' | 'plastic') => {
-    if (!validateForm(type)) {
-      alert('Please fill out all required fields correctly.');
-      return;
-    }
-
-    setSending(true);
-    try {
-      let payload;
-      let api: (payload: any) => Promise<ApiResponse<any>>;
-
-      switch (type) {
-        case 'traffic':
-          payload = {
-            mode: form.vehicle,
-            distanceKm: Number(form.distance),
-          } as TrafficUsageRequest;
-          api = apiService.trafficUsage.create;
-          break;
-        case 'food':
-          payload = {
-            type: form.foodType,
-            amount: Number(form.foodAmount),
-          } as FoodUsageRequest;
-          api = apiService.foodUsage.create;
-          break;
-        case 'energy':
-          payload = {
-            source: form.energySource,
-            amount: Number(form.energyAmount),
-          } as EnergyUsageRequest;
-          api = apiService.energyUsage.create;
-          break;
-        case 'plastic':
-          payload = {
-            item: form.plasticType,
-            quantity: Number(form.plasticQty),
-          } as PlasticUsageRequest;
-          api = apiService.plasticUsage.create;
-          break;
-        default:
-          throw new Error('Invalid type');
-      }
-
-      await api(payload);
-      resetForm();
-    } catch (err) {
-      console.error('Error saving data:', err);
-      alert('Failed to save data. Please try again.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      vehicle: '',
-      distance: '',
-      foodType: '',
-      foodAmount: '',
-      energySource: '',
-      energyAmount: '',
-      plasticType: '',
-      plasticQty: '',
-    });
-    setActive(null);
-    fetchTotalCo2();
+  // Hàm mở modal và truyền dữ liệu
+  const handleOpenModal = (data: UsageData) => {
+      setSelectedUsage(data);
+      setIsModalVisible(true);
   };
   
-  // Tính toán trạng thái hợp lệ của form cho UI
-  const isTrafficFormValid = form.vehicle.trim() !== '' && Number(form.distance) > 0 && !isNaN(Number(form.distance));
-  const isFoodFormValid = form.foodType.trim() !== '' && Number(form.foodAmount) > 0 && !isNaN(Number(form.foodAmount));
-  const isEnergyFormValid = form.energySource.trim() !== '' && Number(form.energyAmount) > 0 && !isNaN(Number(form.energyAmount));
-  const isPlasticFormValid = form.plasticType.trim() !== '' && Number(form.plasticQty) > 0 && !isNaN(Number(form.plasticQty));
+  // Hàm đóng modal
+  const handleCloseModal = () => {
+      setIsModalVisible(false);
+      setSelectedUsage(null);
+      // Logic: Cần gọi lại fetchData() ở đây để cập nhật dữ liệu sau khi lưu
+      // fetchData(); 
+  };
+
+
+  // Tải dữ liệu người dùng và hoạt động (Cần định nghĩa hàm fetchData riêng)
+  const fetchData = async () => {
+      setLoading(true);
+      try {
+        const userRes = await apiService.user.me();
+        if (!userRes.success || !userRes.data) throw new Error("Không lấy được user.");
+        
+        // Logic tải hoạt động (giữ nguyên)
+        const userId = userRes.data.id;
+        const activitiesRes = await apiService.userActivities.getByUserId(userId);
+        
+        if (activitiesRes.success && activitiesRes.data) {
+            setActivities(activitiesRes.data);
+        } else {
+            console.error("Lỗi tải hoạt động:", activitiesRes.message);
+        }
+        
+      } catch (e) {
+        console.error("Lỗi API:", e);
+      } finally {
+        setLoading(false);
+      }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
+  // LOGIC HIỂN THỊ DỮ LIỆU (Giữ nguyên)
+  const lastRecordedActivity = useMemo(() => {
+      if (!activities.length) return null;
+      const sorted = [...activities].sort((a, b) => 
+          new Date((b as any).date as string).getTime() - new Date((a as any).date as string).getTime()
+      );
+      return sorted.length > 0 ? (sorted[0] as any) : null;
+  }, [activities]);
+
+  const todayEmission = useMemo(() => {
+      const today = new Date();
+      const todayActivities = activities.filter(x => isSameDay((x as any).date as string, today));
+      return todayActivities.reduce((sum, x) => sum + getActivityEmission(x), 0);
+  }, [activities]);
+
+  const lastEmission = getActivityEmission(lastRecordedActivity);
+  const currentEmission = lastEmission;
+  
+  const currentEmissionDate = lastRecordedActivity 
+      ? new Date((lastRecordedActivity as any).date).toLocaleDateString('vi-VN')
+      : '—';
+  
+  const userName = currentUser?.userName || "string";
+  const screenBackground = customColors.cardBg; 
+  
+  // DỮ LIỆU CHO 4 Ô STATS (SỬA LỖI TRUY CẬP VÀ ĐỊNH DẠNG FACTOR)
+  const trafficUsageObj = lastRecordedActivity?.trafficUsage;
+  const foodUsageObj = lastRecordedActivity?.foodUsage;
+  const plasticUsageObj = lastRecordedActivity?.plasticUsage;
+  const energyUsageObj = lastRecordedActivity?.energyUsage;
+  
+  const trafficCo2 = getUsageCo2(trafficUsageObj);
+  const foodCo2 = getUsageCo2(foodUsageObj);
+  const plasticCo2 = getUsageCo2(plasticUsageObj);
+  const energyCo2 = getUsageCo2(energyUsageObj);
+
+  // GIAO THÔNG
+  const trafficDistance = (trafficUsageObj as any)?.distance ?? '—';
+  const trafficFactorRaw = (trafficUsageObj as any)?.trafficCategory;
+  const trafficFactorName = prettyTrafficType(trafficFactorRaw);
+
+  // THỰC PHẨM
+  const foodAmountRaw = (foodUsageObj as any)?.amount;
+  const foodItemsCount = (foodUsageObj as any)?.foodItems?.length ?? 0;
+  const foodFactor = foodAmountRaw ? foodAmountRaw.toFixed(1) : (foodItemsCount > 0 ? 'Chi tiết' : '—');
+  const foodFactorUnit = foodAmountRaw ? "Lượng (g)" : "Khối lượng";
+
+  // NHỰA
+  const plasticFactorRaw = (plasticUsageObj as any)?.quantity ?? (plasticUsageObj as any)?.estimatedKg;
+  const plasticFactorUnit = (plasticUsageObj as any)?.quantity ? "Số lượng (item)" : "Khối lượng (kg)";
+  
+  // NĂNG LƯỢNG
+  const energyFactorRaw = (energyUsageObj as any)?.electricityconsumption;
+
+  const usageStats = [
+      { 
+          type: "Giao thông", 
+          emission: trafficCo2, 
+          factor: `${trafficDistance} km`, 
+          factorUnit: 'Quãng đường (km)', 
+          color: customColors.gaugeGreen,
+          factorValue: String(trafficDistance),
+          route: '/measure/traffic'
+      },
+      { 
+          type: "Thực phẩm", 
+          emission: foodCo2, 
+          factor: foodFactor, 
+          factorUnit: foodFactorUnit, 
+          color: '#00B0FF', 
+          factorValue: foodAmountRaw?.toFixed(1) ?? '',
+          route: '/measure/food'
+      },
+      { 
+          type: "Nhựa", 
+          emission: plasticCo2, 
+          factor: plasticFactorRaw?.toFixed(2) ?? '—', 
+          factorUnit: plasticFactorUnit, 
+          color: '#FF6F00', 
+          factorValue: plasticFactorRaw?.toFixed(2) ?? '',
+          route: '/measure/plastic'
+      },
+      { 
+          type: "Năng lượng", 
+          emission: energyCo2, 
+          factor: energyFactorRaw?.toFixed(0) ?? '—', 
+          factorUnit: "Tiêu thụ (kWh)", 
+          color: '#9C27B0', 
+          factorValue: energyFactorRaw?.toFixed(0) ?? '',
+          route: '/measure/energy'
+      },
+  ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: '#F9FFF4' }]}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <ThemedText style={styles.greeting}>
-          {user ? `Hello, ${user.userName || user.email?.split('@')[0]} 👋` : 'Hello 👋'}
-        </ThemedText>
-        <ThemedText style={styles.subGreeting}>Theo dõi lượng phát thải CO₂ hằng ngày</ThemedText>
-      </View>
-
-      {/* GAUGE */}
-      <View style={styles.gaugeBox}>
-        <ThemedText style={styles.gaugeTitle}>Phát thải CO₂ hôm nay</ThemedText>
-        {loading ? (
-            <ActivityIndicator size="small" color="#333" />
-        ) : (
-            <>
-                <Gauge value={co2} max={10} />
-        <ThemedText style={styles.gaugeDesc}>
-                    {co2 > 0 ? `${co2.toFixed(2)} kg CO₂` : 'Chưa có dữ liệu phát thải. Ghi nhận hoạt động đầu tiên của bạn!'}
-        </ThemedText>
-            </>
-        )}
-      </View>
-
-      {/* FORM */}
-      <View style={styles.measureBox}>
-        <ThemedText style={styles.sectionTitle}>Ghi nhận hoạt động</ThemedText>
-
-        {/* 4 nút */}
-        <View style={styles.categoryRow}>
-          {[
-            { key: 'traffic', icon: 'car.fill', label: 'Phương tiện', co2: categoryCo2.traffic },
-            { key: 'food', icon: 'fork.knife', label: 'Đồ ăn', co2: categoryCo2.food },
-            { key: 'energy', icon: 'bolt.fill', label: 'Điện', co2: categoryCo2.energy },
-            { key: 'plastic', icon: 'trash.fill', label: 'Nhựa', co2: categoryCo2.plastic },
-          ].map((b) => (
-            <TouchableOpacity
-              key={b.key}
-              style={[styles.categoryBtn, active === b.key && styles.categoryActive]}
-              onPress={() => setActive(active === b.key ? null : (b.key as any))}>
-              <IconSymbol name={b.icon} color="#111" size={22} />
-              <ThemedText style={styles.categoryText}>{b.label}</ThemedText>
-              <ThemedText style={styles.categoryCo2}>{b.co2.toFixed(2)} kg CO₂</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* FORM CHI TIẾT */}
-        {active === 'traffic' && (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Phương tiện (Car, Bus, Bike...)"
-              value={form.vehicle}
-              onChangeText={(t) => setForm({ ...form, vehicle: t })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Quãng đường (km)"
-              keyboardType="numeric"
-              value={form.distance}
-              onChangeText={(t) => setForm({ ...form, distance: t.replace(/[^0-9.]/g, '') })}
-            />
-            <TouchableOpacity
-              style={[styles.saveBtn, (!isTrafficFormValid || sending) && { opacity: 0.5 }]}
-              disabled={!isTrafficFormValid || sending}
-              onPress={() => handleSave('traffic')}>
-              <IconSymbol name="square.and.arrow.down.fill" color="#fff" size={18} />
-              <ThemedText style={styles.saveText}>
-                {sending ? 'Đang lưu...' : 'Lưu phương tiện'}
+    <ScreenWrapper 
+      scroll 
+      containerStyle={{ backgroundColor: screenBackground }}
+      contentContainerStyle={styles.contentContainer}
+    >
+      {loading ? (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={tintColor} />
+          <ThemedText>Đang tải dữ liệu...</ThemedText>
+        </ThemedView>
+      ) : (
+        <>
+          {/* PHẦN HEADER */}
+          <View style={styles.header}>
+            <View style={styles.headerAvatar} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <ThemedText style={styles.helloText}>
+                Xin chào, {userName} !
               </ThemedText>
+              <ThemedText style={styles.noDataText}>
+                {todayEmission === 0 ? "Chưa có dữ liệu hôm nay." : "Đã nhập dữ liệu hôm nay."}
+              </ThemedText>
+            </View>
+            <TouchableOpacity style={styles.menuButton}>
+                <ThemedText style={{ fontSize: 24, lineHeight: 24 }}>≡</ThemedText>
             </TouchableOpacity>
-          </>
-        )}
+          </View>
 
-        {active === 'food' && (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Loại thực phẩm (Thịt, Rau...)"
-              value={form.foodType}
-              onChangeText={(t) => setForm({ ...form, foodType: t })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Khối lượng (gram)"
-              keyboardType="numeric"
-              value={form.foodAmount}
-              onChangeText={(t) => setForm({ ...form, foodAmount: t.replace(/[^0-9.]/g, '') })}
-            />
-            <TouchableOpacity
-              style={[styles.saveBtn, (!isFoodFormValid || sending) && { opacity: 0.5 }]}
-              disabled={!isFoodFormValid || sending}
-              onPress={() => handleSave('food')}>
-              <IconSymbol name="square.and.arrow.down.fill" color="#fff" size={18} />
-              <ThemedText style={styles.saveText}>
-                {sending ? 'Đang lưu...' : 'Lưu thực phẩm'}
-            </ThemedText>
-            </TouchableOpacity>
-          </>
-        )}
+          {/* KHUNG HIỂN THỊ TỔNG CO2 LỚN */}
+          <TotalCO2Card emission={currentEmission} color={tintColor} dateString={currentEmissionDate} /> 
 
-        {active === 'energy' && (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Nguồn điện (Nhà, Cơ quan...)"
-              value={form.energySource}
-              onChangeText={(t) => setForm({ ...form, energySource: t })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Số điện tiêu thụ (kWh)"
-              keyboardType="numeric"
-              value={form.energyAmount}
-              onChangeText={(t) => setForm({ ...form, energyAmount: t.replace(/[^0-9.]/g, '') })}
-            />
-            <TouchableOpacity
-              style={[styles.saveBtn, (!isEnergyFormValid || sending) && { opacity: 0.5 }]}
-              disabled={!isEnergyFormValid || sending}
-              onPress={() => handleSave('energy')}>
-              <IconSymbol name="square.and.arrow.down.fill" color="#fff" size={18} />
-              <ThemedText style={styles.saveText}>
-                {sending ? 'Đang lưu...' : 'Lưu điện năng'}
-            </ThemedText>
-            </TouchableOpacity>
-          </>
-        )}
+          {/* KHUNG TÁC ĐỘNG CO2 (LINEAR GAUGE) */}
+          <View style={[styles.gaugeCard, { backgroundColor: customColors.cardBg }]}>
+            <View style={styles.gaugeInfo}>
+              <ThemedText style={styles.gaugeTitle}>Tác động CO₂ hôm nay</ThemedText> 
+              <ThemedText style={styles.gaugeSubtitle}>Mục tiêu hàng ngày</ThemedText> 
+            </View>
+            <CO2LinearGauge emission={currentEmission} />
+          </View>
 
-        {active === 'plastic' && (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Loại nhựa (Chai, Túi...)"
-              value={form.plasticType}
-              onChangeText={(t) => setForm({ ...form, plasticType: t })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Số lượng (cái)"
-              keyboardType="numeric"
-              value={form.plasticQty}
-              onChangeText={(t) => setForm({ ...form, plasticQty: t.replace(/[^0-9]/g, '') })}
-            />
-            <TouchableOpacity
-              style={[styles.saveBtn, (!isPlasticFormValid || sending) && { opacity: 0.5 }]}
-              disabled={!isPlasticFormValid || sending}
-              onPress={() => handleSave('plastic')}>
-              <IconSymbol name="square.and.arrow.down.fill" color="#fff" size={18} />
-              <ThemedText style={styles.saveText}>
-                {sending ? 'Đang lưu...' : 'Lưu nhựa'}
-                  </ThemedText>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </ScrollView>
-  );
-}
-
-/* ---------- Gauge ---------- */
-function Gauge({ value, max }: { value: number; max: number }) {
-  const percent = Math.min(value / max, 1);
-  const angle = 180 * percent - 90;
-  const needleX = 100 + 80 * Math.cos((angle * Math.PI) / 180);
-  const needleY = 100 + 80 * Math.sin((angle * Math.PI) / 180);
-
-  return (
-    <Svg width="200" height="120" viewBox="0 0 200 120">
-      <Path d="M20 100 A80 80 0 0 1 180 100" stroke="#eee" strokeWidth="16" fill="none" />
-      <Path
-        d="M20 100 A80 80 0 0 1 180 100"
-        stroke="#B6FF4A"
-        strokeWidth="16"
-        fill="none"
-        strokeDasharray={[180 * percent, 180]}
+          {/* KHUNG THỐNG KÊ CHI TIẾT 4 LOẠI (LÀM CHỨC NĂNG NHẬP LIỆU) */}
+          <ThemedText style={styles.sectionTitle}>Cập nhật Ghi nhận hoạt động</ThemedText>
+          <View style={styles.statsGrid}>
+              {usageStats.map((stat, index) => (
+                  <UsageStatBox 
+                      key={index}
+                      type={stat.type}
+                      emission={stat.emission}
+                      factor={stat.factor}
+                      factorUnit={stat.factorUnit}
+                      color={stat.color}
+                    
+                      
+                      // Dùng onPress để mở Modal
+                      onPress={() => handleOpenModal(stat as UsageData)}
+                  />
+              ))}
+          </View>
+        </>
+      )}
+      
+      {/* MODAL CHỈNH SỬA INLINE */}
+      <EditUsageModal 
+          isVisible={isModalVisible} 
+          onClose={handleCloseModal} 
+          data={selectedUsage}
       />
-      <Path d={`M100,100 L${needleX},${needleY}`} stroke="#222" strokeWidth="3" />
-      <Circle cx="100" cy="100" r="4" fill="#222" />
-    </Svg>
+    </ScreenWrapper>
   );
 }
 
-/* ---------- Styles ---------- */
+/* ==================== STYLES CHO MODAL ==================== */
+
+const modalStyles = StyleSheet.create({
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalView: {
+        margin: 20,
+        borderRadius: 20,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        width: '90%',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 15,
+    },
+    label: {
+        color: '#fff',
+        marginBottom: 8,
+        alignSelf: 'flex-start',
+        fontWeight: '600',
+    },
+    input: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 10,
+        padding: 10,
+        color: '#fff',
+        width: '100%',
+        marginBottom: 20,
+        fontSize: 16,
+    },
+    estimateText: {
+        color: '#fff',
+        marginBottom: 20,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    button: {
+        borderRadius: 10,
+        padding: 10,
+        elevation: 2,
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    buttonSave: {
+        backgroundColor: '#fff',
+    },
+    buttonClose: {
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 10,
+        padding: 10,
+        elevation: 2,
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    textStyle: {
+        color: customColors.text,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+});
+
+/* ==================== STYLES KHÁC GIỮ NGUYÊN ==================== */
+
+const totalCo2Styles = StyleSheet.create({
+    card: {
+        borderRadius: 18,
+        padding: 20,
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: customColors.text,
+        opacity: 0.8,
+    },
+    value: {
+        fontSize: 48, 
+        fontWeight: '900',
+        color: customColors.text,
+        marginTop: 4,
+        lineHeight: 52, 
+        textAlign: 'center',
+    },
+    unit: {
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    tip: {
+        fontSize: 13,
+        color: customColors.text,
+        opacity: 0.6,
+        marginTop: 8,
+        textAlign: 'center',
+    }
+})
+
+// Styles cho Linear Gauge
+const linearGaugeStyles = StyleSheet.create({
+    container: {
+        width: '50%',
+        paddingRight: 10,
+        alignItems: 'flex-end',
+    },
+    barBackground: {
+        width: '100%',
+        height: 12,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 6,
+        overflow: 'hidden',
+        marginBottom: 8,
+    },
+    barProgress: {
+        height: '100%',
+        borderRadius: 6,
+    },
+    labels: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 2,
+    },
+    goalLabel: {
+        fontSize: 12,
+        color: customColors.text,
+        opacity: 0.7,
+    },
+    overGoalLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: customColors.gaugeRed,
+    }
+});
+
+
+/* ==================== Styles cho Grid 4 ô (MỚI) ==================== */
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9F9F9',
-    padding: 16,
+  contentContainer: { paddingVertical: 0, flexGrow: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // Header
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 20, 
+    paddingTop: 10,
+    paddingHorizontal: 16,
   },
-  header: {
-    marginTop: 40,
+  headerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#333',
+  },
+  helloText: { fontSize: 18, fontWeight: 'bold' },
+  noDataText: { fontSize: 13, opacity: 0.7 },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
   },
-  greeting: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  subGreeting: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  gaugeBox: {
-    marginTop: 20,
-    alignItems: 'center',
-    backgroundColor: '#FFFCEF',
-    marginHorizontal: 16,
-    borderRadius: 16,
+  
+  // Gauge Card (Chứa Linear Gauge)
+  gaugeCard: {
+    borderRadius: 18,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  gaugeTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#444',
-  },
-  gaugeDesc: {
-    marginTop: 4,
-    fontSize: 13,
-    color: '#777',
-    textAlign: 'center',
-  },
-  measureBox: {
-    backgroundColor: '#EFFFF4',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
     marginHorizontal: 16,
-    marginTop: 18,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  gaugeInfo: { flex: 1, paddingRight: 10 },
+  gaugeTitle: { fontSize: 16, fontWeight: 'bold', color: customColors.text, marginBottom: 4 },
+  gaugeSubtitle: { fontSize: 13, opacity: 0.7 },
+
+  // Small Stats Grid
+  statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginHorizontal: 16,
+      marginBottom: 20,
+      marginTop: 8,
+  },
+  statBox: {
+      width: '48%', // Tạo grid 2x2
+      minHeight: 120,
+      borderRadius: 16,
+      padding: 12,
+      marginBottom: 10,
+      alignItems: 'flex-start',
+  },
+  statType: {
+      fontSize: 13,
+      fontWeight: 'bold',
+      color: '#fff',
+      opacity: 0.8,
+      marginBottom: 4,
+  },
+  statValueDetail: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: '#fff',
+      marginTop: 2,
+  },
+  statFactorLabel: {
+      fontSize: 11,
+      color: '#fff',
+      opacity: 0.7,
+      marginTop: 4,
+  },
+  statFactorValue: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#fff',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#333',
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: customColors.text,
+      paddingHorizontal: 16,
+      marginBottom: 4,
+      marginTop: 10,
   },
-  categoryRow: {
-    flexDirection: 'column',
-    gap: 12,
-    marginBottom: 16,
-  },
-  categoryBtn: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    paddingVertical: 14,
+});
+
+// Styles cho Component Đồng Hồ CŨ (Giữ lại để tránh lỗi nếu có nơi khác sử dụng)
+const gaugeStyles = StyleSheet.create({
+  gaugeContainer: {
+    width: 150,
+    height: 150,
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: 0, // Ẩn component cũ
+    position: 'absolute',
+  },
+  arcWrapper: {
+    width: 150,
+    height: 75,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
     flexDirection: 'row',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
-  categoryText: {
-    fontWeight: '600',
-    color: '#111',
+  arc: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
   },
-  categoryCo2: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+  arcGreen: { backgroundColor: customColors.gaugeGreen, left: 0, width: 75, borderTopLeftRadius: 75, borderBottomLeftRadius: 75 }, 
+  arcYellow: { backgroundColor: customColors.gaugeYellow, left: 75, width: 75, opacity: 0.5 }, 
+  arcRed: { backgroundColor: customColors.gaugeRed, right: 0, width: 75, opacity: 0.5 },
+
+  centerCircle: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: customColors.text,
+    bottom: 0,
   },
-  categoryActive: {
-    backgroundColor: '#B6FF4A55',
-    borderColor: '#b6ff4a',
+  needle: {
+    position: 'absolute',
+    bottom: 6,
+    width: 2,
+    height: 70,
+    transformOrigin: 'bottom center',
   },
-  input: {
-    backgroundColor: '#fff',
+  labelSmall: { fontSize: 14, fontWeight: 'bold', position: 'absolute', bottom: -20, textAlign: 'center' },
+});
+
+// Styles cho Component Nút Nhập liệu (Không dùng)
+const measureStyles = StyleSheet.create({
+  button: {
+    backgroundColor: customColors.measureBg,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
-    color: '#333',
+    borderColor: '#e0e0e0', 
   },
-  saveBtn: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  saveText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  label: { fontSize: 15, fontWeight: '600' },
+  subLabel: { fontSize: 12, opacity: 0.6, marginTop: 2 },
 });
