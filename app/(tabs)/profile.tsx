@@ -3,47 +3,56 @@ import { ScreenWrapper } from '@/components/wrapper';
 import { User, apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View
 } from 'react-native';
 import { ThemedText } from '../../components/themed-text';
-import { ThemedView } from '../../components/themed-view';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function ProfileScreen() {
+  // Bảng màu xanh – môi trường
   const backgroundColor = '#e6fcd9';
-  const tintColor = '#b6ff4a';
-  const textColor = '#222';
+  const surface = '#ffffff';
+  const deepGreen = '#064e3b';
+  const lime = '#b6ff4a';
+  const textColor = '#0b1f17';
+
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // fetch /User/me khi mở màn hình
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await apiService.user.me(); // -> GET /api/User/me
-        if (!alive) return;
-        if (res?.success && res?.data) {
-          setUser(res.data);
-        } else {
-          Alert.alert('Lỗi', res?.error || res?.message || 'Không lấy được thông tin người dùng');
-        }
-      } catch (e: any) {
-        Alert.alert('Lỗi', e?.response?.data?.message || 'Không lấy được thông tin người dùng');
-      } finally {
-        if (alive) setLoading(false);
+  // ===== Lấy thông tin người dùng (giữ nguyên API) =====
+  const fetchMe = useCallback(async () => {
+    try {
+      const res = await apiService.user.me(); // -> GET /api/User/me
+      if (res?.success && res?.data) {
+        setUser(res.data);
+      } else {
+        Alert.alert('Lỗi', res?.error || res?.message || 'Không lấy được thông tin người dùng');
       }
-    })();
-    return () => { alive = false; };
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.response?.data?.message || 'Không lấy được thông tin người dùng');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => { fetchMe(); }, [fetchMe]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchMe();
+  }, [fetchMe]);
 
   const handleLogout = async () => {
     try {
@@ -57,12 +66,12 @@ export default function ProfileScreen() {
   // ==== helpers ====
   const displayName = useMemo(() => {
     if (!user) return '—';
-    return user.userName || (user.email ? user.email.split('@')[0] : 'User');
+    return user.userName || (user.email ? user.email.split('@')[0] : 'Người dùng');
   }, [user]);
 
   const initials = useMemo(() => {
     const s = displayName.trim();
-    if (!s || s === '—') return 'U';
+    if (!s || s === '—') return 'N';
     const parts = s.split(' ').filter(Boolean);
     if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -72,143 +81,151 @@ export default function ProfileScreen() {
     user?.userName ? `@${user.userName}` :
       user?.email ? `@${user.email.split('@')[0]}` : '';
 
-  const prettyRole = (r: any) => {
-    if (typeof r === 'number') {
-      if (r === 1) return 'User';
-      if (r === 2) return 'Admin';
-      if (r === 3) return 'Moderator';
-      return `Role ${r}`;
-    }
-    if (typeof r === 'string' && r.length) return r;
-    return 'User';
-  };
-
+  // Hiển thị gói bằng tiếng Việt
   const prettyPlan = (t: any) => {
     if (typeof t === 'number') {
-      if (t === 1) return 'Basic';
-      if (t === 2) return 'Pro';
+      if (t === 1) return 'Cơ bản';
+      if (t === 2) return 'Nâng cao';
       if (t === 3) return 'VIP';
-      return `Plan ${t}`;
+      return `Gói ${t}`;
     }
-    if (typeof t === 'string' && t.length) return t;
+    if (typeof t === 'string' && t.length) {
+      const s = t.toLowerCase();
+      if (s === 'basic') return 'Cơ bản';
+      if (s === 'pro') return 'Nâng cao';
+      return t; // giữ nguyên nếu backend trả tên tùy biến
+    }
     return '—';
   };
 
-  const prettyDate = (d?: string | Date | null) => {
-    if (!d) return '—';
-    const s = typeof d === 'string' ? d : (d as Date).toString();
-    // loại '-infinity' hoặc giá trị không hợp lệ
-    if (s.toLowerCase().includes('infinity')) return '—';
-    const dd = new Date(s);
-    if (isNaN(dd.getTime())) return '—';
-    const day = String(dd.getDate()).padStart(2, '0');
-    const mon = String(dd.getMonth() + 1).padStart(2, '0');
-    const yr = dd.getFullYear();
-    return `${day}/${mon}/${yr}`;
-  };
-
   return (
-     <ScreenWrapper containerStyle={{ ...styles.container, backgroundColor }}>
-      {/* HEADER */}
-      <ThemedView style={styles.header}>
-        <View style={[styles.avatarWrapper, { backgroundColor: '#ffffff' }]}>
-          <View style={[styles.avatar, { backgroundColor: '#222' }]}>
-            <ThemedText style={styles.avatarText}>{initials}</ThemedText>
+    <ScreenWrapper containerStyle={{ ...styles.container, backgroundColor }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 28 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={deepGreen} />
+        }
+      >
+        {/* PHẦN ĐẦU – phong cách “xanh” */}
+        <View style={[styles.ecoHeader, { backgroundColor: '#d8f7e6' }]}>
+          <View style={[styles.bubble, { top: -20, left: -30, backgroundColor: '#b7f5cf' }]} />
+          <View style={[styles.bubble, { bottom: -30, right: -40, backgroundColor: '#c8ffd6' }]} />
+
+          <View style={styles.headerRow}>
+            <View style={[styles.avatarWrapper, { borderColor: lime }]}>
+              <View style={[styles.avatar, { backgroundColor: deepGreen }]}>
+                <ThemedText style={styles.avatarText}>{initials}</ThemedText>
+              </View>
+            </View>
+
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <ThemedText type="title" style={[styles.name, { color: deepGreen }]}>
+                {loading ? 'Đang tải…' : displayName}
+              </ThemedText>
+              {!!userHandle && (
+                <ThemedText style={[styles.username, { color: textColor }]}>{userHandle}</ThemedText>
+              )}
+
+              {/* nhãn nhỏ */}
+              <View style={styles.chipsRow}>
+                <View style={[styles.chip, { backgroundColor: deepGreen, borderColor: deepGreen }]}>
+                  <IconSymbol size={14} name="leaf.fill" color={lime} />
+                  <ThemedText style={[styles.chipText, { color: '#fff' }]}>Thành viên xanh</ThemedText>
+                </View>
+                <View style={[styles.chip, { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }]}>
+                  <IconSymbol size={14} name="creditcard.fill" color={deepGreen} />
+                  <ThemedText style={[styles.chipText, { color: deepGreen }]}>
+                    Gói: {prettyPlan((user as any)?.subscriptionType)}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
-        <ThemedText type="title" style={styles.name}>
-          {loading ? 'Đang tải…' : displayName}
-        </ThemedText>
-
-        {!!userHandle && (
-          <ThemedText style={[styles.username, { color: textColor }]}>
-            {userHandle}
-          </ThemedText>
-        )}
-
-        {/* chips */}
-        <View style={styles.chipsRow}>
-          <View style={[styles.chip, { backgroundColor: '#1f2937', borderColor: '#000' }]}>
-            <IconSymbol size={14} name="checkmark.seal.fill" color={tintColor} />
-            <ThemedText style={[styles.chipText, { color: '#fff' }]}>{prettyRole(user?.role)}</ThemedText>
+        {/* THÔNG TIN TÀI KHOẢN – chỉ 4 trường yêu cầu */}
+        <View style={[styles.card, { backgroundColor: surface }]}>
+          <View style={styles.cardHeader}>
+            <IconSymbol size={18} name="person.crop.circle" color={deepGreen} />
+            <ThemedText style={[styles.cardTitle, { color: deepGreen }]}>Thông tin tài khoản</ThemedText>
           </View>
-          <View style={[styles.chip, { backgroundColor: '#b6ff4a33', borderColor: '#b6ff4a' }]}>
-            <IconSymbol size={14} name="creditcard.fill" color="#222" />
-            <ThemedText style={[styles.chipText, { color: '#111' }]}>{prettyPlan((user as any)?.subscriptionType)}</ThemedText>
+
+          {loading ? (
+            <ActivityIndicator size="small" color={deepGreen} style={{ paddingVertical: 16 }} />
+          ) : (
+            <View style={styles.infoList}>
+              <InfoRow icon="person" label="Tên người dùng" value={user?.userName || '—'} />
+              <InfoRow icon="envelope.fill" label="Email" value={user?.email || '—'} />
+              <InfoRow icon="phone.fill" label="Số điện thoại" value={(user as any)?.phoneNumber || '—'} />
+              <InfoRow icon="creditcard.fill" label="Gói sử dụng" value={prettyPlan((user as any)?.subscriptionType)} />
+            </View>
+          )}
+
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: deepGreen }]}
+              onPress={() => router.push('/vip-packages' as any)}
+            >
+              <IconSymbol size={18} name="sparkles" color="#fff" />
+              <ThemedText style={[styles.primaryBtnText, { color: '#fff' }]}>Nâng cấp gói</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.secondaryBtn, { borderColor: deepGreen }]}
+              onPress={() => router.push('/profile/edit' as any)}
+            >
+              <IconSymbol size={18} name="pencil" color={deepGreen} />
+              <ThemedText style={[styles.secondaryBtnText, { color: deepGreen }]}>Chỉnh sửa</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
-      </ThemedView>
 
-      {/* THẺ THÔNG TIN */}
-      <View style={styles.card}>
-        <ThemedText style={styles.cardTitle}>Thông tin tài khoản</ThemedText>
+        {/* HÀNH ĐỘNG XANH (tuỳ chọn điều hướng) */}
+        <View style={styles.sectionHeader}>
+          <ThemedText style={[styles.sectionTitle, { color: deepGreen }]}>Hành động xanh</ThemedText>
+        </View>
+        <View style={styles.list}>
+          {[
+            { icon: 'leaf.fill', label: 'Theo dõi hoạt động carbon', onPress: () => router.push('/activities' as any) },
+            { icon: 'globe.asia.australia.fill', label: 'Bảng điều khiển carbon', onPress: () => router.push('/dashboard' as any) },
+            { icon: 'creditcard.fill', label: 'Bù trừ phát thải', onPress: () => router.push('/offset' as any) },
+          ].map((item) => (
+            <TouchableOpacity key={item.label} style={[styles.item, { backgroundColor: '#f6ffea' }]} onPress={item.onPress}>
+              <IconSymbol size={22} name={item.icon as any} color={deepGreen} />
+              <ThemedText style={[styles.itemLabel, { color: textColor }]}>{item.label}</ThemedText>
+              <IconSymbol size={16} name="chevron.right" color="#6b7280" />
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {loading ? (
-          <ActivityIndicator size="small" color="#111" style={{ paddingVertical: 16 }} />
-        ) : (
-          <View style={styles.infoList}>
-            <InfoRow icon="person.crop.circle" label="Username" value={user?.userName || '—'} />
-            <InfoRow icon="envelope.fill" label="Email" value={user?.email || '—'} />
-            <InfoRow icon="phone.fill" label="Số điện thoại" value={(user as any)?.phoneNumber || '—'} />
-            <InfoRow icon="shield.fill" label="Role" value={prettyRole(user?.role)} />
-            <InfoRow icon="creditcard.fill" label="Gói sử dụng" value={prettyPlan((user as any)?.subscriptionType)} />
-            <InfoRow icon="calendar" label="Ngày sinh" value={prettyDate((user as any)?.dateOfBirth)} />
-            <InfoRow icon="number" label="User ID" value={String((user as any)?.id ?? '—')} />
-          </View>
-        )}
+        {/* CÀI ĐẶT & HỖ TRỢ */}
+        <View style={styles.sectionHeader}>
+          <ThemedText style={[styles.sectionTitle, { color: deepGreen }]}>Cài đặt & hỗ trợ</ThemedText>
+        </View>
+        <View style={styles.list}>
+          {[
+            { icon: 'gearshape.fill', label: 'Cài đặt', onPress: () => router.push('/settings' as any) },
+            { icon: 'questionmark.circle', label: 'Hỗ trợ', onPress: () => router.push('/support' as any) },
+            { icon: 'envelope.fill', label: 'Gửi phản hồi', onPress: () => router.push('/feedback' as any) },
+          ].map((item) => (
+            <TouchableOpacity key={item.label} style={[styles.item, { backgroundColor: '#f6ffea' }]} onPress={item.onPress}>
+              <IconSymbol size={22} name={item.icon as any} color={deepGreen} />
+              <ThemedText style={[styles.itemLabel, { color: textColor }]}>{item.label}</ThemedText>
+              <IconSymbol size={16} name="chevron.right" color="#6b7280" />
+            </TouchableOpacity>
+          ))}
 
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: '#111' }]}
-            onPress={() => router.push('/vip-packages' as any)}
-          >
-            <IconSymbol size={18} name="sparkles" color="#fff" />
-            <ThemedText style={[styles.primaryBtnText, { color: '#fff' }]}>Nâng cấp gói</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: '#111' }]}
-            onPress={() => router.push('/profile/edit' as any)}
-          >
-            <IconSymbol size={18} name="pencil" color="#111" />
-            <ThemedText style={[styles.secondaryBtnText, { color: '#111' }]}>Chỉnh sửa</ThemedText>
+          <TouchableOpacity onPress={handleLogout} style={[styles.item, styles.logoutItem]}>
+            <IconSymbol size={22} name="rectangle.portrait.and.arrow.right" color="#F44336" />
+            <ThemedText style={[styles.itemLabel, { color: '#F44336' }]}>Đăng xuất</ThemedText>
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* DANH SÁCH HÀNH ĐỘNG */}
-      <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Cài đặt & hỗ trợ</ThemedText>
-      </View>
-
-      <View style={styles.list}>
-        {[
-          { icon: 'gearshape.fill', label: 'Cài đặt' },
-          { icon: 'questionmark.circle', label: 'Hỗ trợ' },
-          { icon: 'envelope.fill', label: 'Gửi phản hồi' },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.item, { backgroundColor: '#f6ffea' }]}
-            onPress={() => {}}
-          >
-            <IconSymbol size={22} name={item.icon as any} color={textColor} />
-            <ThemedText style={styles.itemLabel}>{item.label}</ThemedText>
-            <IconSymbol size={16} name="chevron.right" color="#6b7280" />
-          </TouchableOpacity>
-        ))}
-
-        <TouchableOpacity onPress={handleLogout} style={[styles.item, styles.logoutItem]}>
-          <IconSymbol size={22} name="rectangle.portrait.and.arrow.right" color="#F44336" />
-          <ThemedText style={[styles.itemLabel, { color: '#F44336' }]}>Đăng xuất</ThemedText>
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </ScreenWrapper>
   );
 }
 
-/* ============== Sub components ============== */
+/* ============== Thành phần dòng thông tin ============== */
 function InfoRow({
   icon,
   label,
@@ -221,7 +238,7 @@ function InfoRow({
   return (
     <View style={styles.infoRow}>
       <View style={styles.infoLeft}>
-        <IconSymbol size={18} name={icon} color="#111" />
+        <IconSymbol size={18} name={icon} color="#064e3b" />
         <ThemedText style={styles.infoLabel}>{label}</ThemedText>
       </View>
       <ThemedText style={styles.infoValue} numberOfLines={1}>
@@ -235,48 +252,49 @@ function InfoRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // header
-  header: { alignItems: 'center', paddingTop: 32, paddingBottom: 12 },
+  // Header “xanh”
+  ecoHeader: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderRadius: 20,
+    padding: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#c7f7dc',
+  },
+  bubble: {
+    position: 'absolute',
+    width: 160, height: 160,
+    borderRadius: 999,
+    opacity: 0.55,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+
+  // avatar
   avatarWrapper: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 6,
-    borderColor: '#b6ff4a',
+    width: 82, height: 82, borderRadius: 41,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 5,
   },
-  avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 28 },
-  name: { marginTop: 14, fontSize: 22, fontWeight: '700' },
-  username: { marginTop: 4, opacity: 0.8 },
+  avatar: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: '800', fontSize: 22 },
+  name: { marginBottom: 4, fontSize: 20, fontWeight: '800' },
+  username: { opacity: 0.9 },
 
   chipsRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    gap: 8,
+    marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 6, paddingHorizontal: 10,
+    borderRadius: 999, borderWidth: 1,
   },
-  chipText: { fontSize: 12, fontWeight: '600' },
+  chipText: { fontSize: 12, fontWeight: '700' },
 
   // card
   card: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
+    marginHorizontal: 12,
     marginTop: 14,
     padding: 16,
     borderRadius: 16,
@@ -288,60 +306,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  cardTitle: { fontSize: 16, fontWeight: '800' },
+
   infoList: { marginTop: 4, gap: 8 },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb',
     gap: 8,
   },
   infoLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   infoLabel: { fontSize: 14, color: '#374151' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: '#111', maxWidth: '55%', textAlign: 'right' },
+  infoValue: { fontSize: 14, fontWeight: '700', color: '#0b1f17', maxWidth: '55%', textAlign: 'right' },
 
-  cardActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
+  cardActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   primaryBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', gap: 8,
   },
-  primaryBtnText: { fontSize: 14, fontWeight: '700' },
+  primaryBtnText: { fontSize: 14, fontWeight: '800' },
   secondaryBtn: {
-    height: 44,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1.2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    height: 44, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.2,
+    alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '700' },
+  secondaryBtnText: { fontSize: 14, fontWeight: '800' },
 
   // section
-  sectionHeader: { marginTop: 12, paddingHorizontal: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111' },
+  sectionHeader: { marginTop: 16, paddingHorizontal: 16 },
+  sectionTitle: { fontSize: 15, fontWeight: '800' },
 
   // list
-  list: { paddingHorizontal: 16, paddingBottom: 28, gap: 10, marginTop: 8 },
+  list: { paddingHorizontal: 12, paddingBottom: 28, gap: 10, marginTop: 8 },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e9f7ed',
   },
-  itemLabel: { fontSize: 16, fontWeight: '600', flex: 1 },
+  itemLabel: { fontSize: 16, fontWeight: '700', flex: 1 },
   logoutItem: { backgroundColor: '#F4433611', borderWidth: 1, borderColor: '#F44336' },
 });

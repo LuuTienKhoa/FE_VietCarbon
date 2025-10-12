@@ -1,52 +1,278 @@
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
-import { upgrade } from "../services/userApi";
+// import { ScreenWrapper } from '@/components/wrapper';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
+import { Stack } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useMemo } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { upgrade } from '../services/userApi';
 
 type PlanCode = 1 | 2;
 type PlanItem = {
-  plan: PlanCode;        
+  plan: PlanCode;
   label: string;
   amount: number;
   subtitle: string;
 };
 
 const PLANS: readonly PlanItem[] = [
-  { plan: 1, label: "VIP Cơ Bản", amount: 25000, subtitle: "1 tháng" },
-  { plan: 2, label: "VIP Cao Cấp", amount: 50000, subtitle: "1 tháng" },
+  { plan: 1, label: 'VIP Cơ Bản', amount: 25000, subtitle: '1 tháng' },
+  { plan: 2, label: 'VIP Cao Cấp', amount: 50000, subtitle: '1 tháng' },
 ];
 
 async function onChoose(plan: PlanCode) {
   try {
-    const returnUrl = Linking.createURL("payment/return");
+    const returnUrl = Linking.createURL('payment/return');
     const cancelUrl = returnUrl;
     const res = await upgrade(plan, returnUrl, cancelUrl);
-    if (!res.success) throw new Error(res.message ?? "Không tạo được liên kết thanh toán");
+    if (!res.success) throw new Error(res.message ?? 'Không tạo được liên kết thanh toán');
     const checkoutUrl: string | undefined = res.data?.checkoutUrl;
-    if (!checkoutUrl) throw new Error("Thiếu checkoutUrl");
+    if (!checkoutUrl) throw new Error('Thiếu checkoutUrl');
     await WebBrowser.openBrowserAsync(checkoutUrl);
   } catch (e: any) {
-    console.error("upgrade error:", e?.response?.data ?? e?.message);
-    Alert.alert("Thanh toán", e?.message ?? "Có lỗi xảy ra");
+    console.error('upgrade error:', e?.response?.data ?? e?.message);
+    Alert.alert('Thanh toán', e?.message ?? 'Có lỗi xảy ra');
   }
 }
 
 export default function VipPackages() {
+  // ===== Responsive hero sizing (khắc phục chữ bị tràn) =====
+  const { width } = useWindowDimensions();
+  // Kích thước cơ sở theo width, kẹp trong khoảng cho chắc
+  const base = Math.min(Math.max(width * 0.17, 44), 64); // px
+  const sizeTop = base * 0.85;  // lớp mờ nhất
+  const sizeMid = base * 1.05;  // lớp giữa
+  const sizeMain = base * 1.25; // lớp đậm nhất
+  const lhTop = sizeTop * 0.98;
+  const lhMid = sizeMid * 0.98;
+  const lhMain = sizeMain * 0.98;
+  const heroHeight = sizeTop + sizeMid + sizeMain + 36; // cao hơn để không cắt
+
+  const fmt = useMemo(
+    () => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }),
+    []
+  );
+
+  const basic = PLANS[0];
+  const premium = PLANS[1];
+
   return (
-    <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      {PLANS.map((p) => (
-        <View key={p.plan} style={{ borderRadius: 16, padding: 16, backgroundColor: "#fff" }}>
-          <Text style={{ fontSize: 18, fontWeight: "700" }}>{p.label}</Text>
-          <Text style={{ fontSize: 24, fontWeight: "800" }}>{p.amount.toLocaleString()}đ</Text>
-          <Text style={{ color: "#666" }}>{p.subtitle}</Text>
-          <TouchableOpacity
-            onPress={() => onChoose(p.plan)}
-            style={{ marginTop: 12, padding: 12, backgroundColor: "#16a34a", borderRadius: 10 }}
+    <>
+    <Stack.Screen
+        options={{
+          title: 'Nâng Cấp',                
+          headerTitleStyle: { fontWeight: '800' },
+          headerTintColor: '#0f2610',
+        }}
+      />
+      <View style={styles.root}>
+        {/* HERO Plans – gradient + chấm tròn + chữ xếp lớp, responsive */}
+        <LinearGradient
+          colors={['#f0ffe9', '#f6ffef']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { height: heroHeight }]}
+        >
+          <View style={[styles.dot, { top: 18, left: 18 }]} />
+          <View style={[styles.dotLg, { top: 26, right: 24 }]} />
+          <View style={[styles.dotSm, { top: heroHeight * 0.45, left: -8 }]} />
+          <View style={[styles.dotSm, { top: heroHeight * 0.6, left: width * 0.25 }]} />
+
+          <Text
+            style={[
+              styles.heroLayer,
+              { fontSize: sizeTop, lineHeight: lhTop, color: '#7beb9a', opacity: 1 },
+            ]}
+            numberOfLines={1}
           >
-            <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700" }}>Chọn gói này</Text>
+            Plans
+          </Text>
+          <Text
+            style={[
+              styles.heroLayer,
+              { fontSize: sizeMid, lineHeight: lhMid, color: '#3bd162', opacity: 0.9, marginTop: -6 },
+            ]}
+            numberOfLines={1}
+          >
+            Plans
+          </Text>
+          <Text
+            style={[
+              styles.heroLayer,
+              { fontSize: sizeMain, lineHeight: lhMain, color: '#0e2a1a', opacity: 0.65, marginTop: -6 },
+            ]}
+            numberOfLines={1}
+          >
+            Plans
+          </Text>
+        </LinearGradient>
+
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Basic month */}
+          <Text style={styles.planTitle}>Gói cơ bản:</Text>
+          <LinearGradient colors={['#ebffd9', '#efffe7']} style={styles.card}>
+            <View style={styles.cardRowTop}>
+              <Text style={styles.cardName}>{basic.label}</Text>
+              <Text style={styles.cardBadge}>Tháng</Text>
+            </View>
+            <Text style={styles.cardPrice}>{fmt.format(basic.amount)}đ</Text>
+            <Text style={styles.cardSub}>{basic.subtitle}</Text>
+
+            <TouchableOpacity style={styles.cta} onPress={() => onChoose(basic.plan)}>
+              <Text style={styles.ctaText}>Chọn gói này</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          {/* Premium month */}
+          <Text style={[styles.planTitle, { marginTop: 20 }]}>Gói nâng cao:</Text>
+          <LinearGradient colors={['#ebffd9', '#efffe7']} style={styles.card}>
+            <View style={styles.cardRowTop}>
+              <Text style={styles.cardName}>{premium.label}</Text>
+              <Text style={[styles.cardBadge, { backgroundColor: '#1e293b', color: '#fff' }]}>
+                Đề xuất
+              </Text>
+            </View>
+            <Text style={styles.cardPrice}>{fmt.format(premium.amount)}đ</Text>
+            <Text style={styles.cardSub}>{premium.subtitle}</Text>
+
+            <TouchableOpacity style={styles.cta} onPress={() => onChoose(premium.plan)}>
+              <Text style={styles.ctaText}>Chọn gói này</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          {/* Premium year (placeholder) */}
+          <Text style={[styles.planTitle, { marginTop: 20 }]}>Premium year:</Text>
+          <LinearGradient colors={['#ebffd9', '#efffe7']} style={styles.card}>
+            <View style={styles.cardRowTop}>
+              <Text style={styles.cardName}>VIP Cao Cấp (năm)</Text>
+              <Text style={styles.cardBadgeMuted}>Sắp ra mắt</Text>
+            </View>
+            <Text style={styles.cardPriceMuted}>—</Text>
+            <Text style={styles.cardSub}>12 tháng</Text>
+
+            <TouchableOpacity style={[styles.cta, styles.ctaDisabled]} disabled>
+              <Text style={[styles.ctaText, { opacity: 0.6 }]}>Chưa khả dụng</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <TouchableOpacity
+            style={styles.paymentsLink}
+            onPress={() => Linking.openURL(Linking.createURL('payments'))}
+          >
+            <Text style={styles.paymentsText}>Payments</Text>
           </TouchableOpacity>
-        </View>
-      ))}
-    </View>
+        </ScrollView>
+      </View>
+     </>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#fff' },
+
+  /* ===== HERO ===== */
+  hero: {
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+    paddingHorizontal: 24,
+    paddingTop: 18,
+  },
+  heroLayer: {
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  dot: {
+    position: 'absolute',
+    width: 26,
+    height: 26,
+    backgroundColor: '#c5ff9b',
+    borderRadius: 20,
+    opacity: 0.9,
+  },
+  dotLg: {
+    position: 'absolute',
+    width: 84,
+    height: 84,
+    backgroundColor: '#d9ffc2',
+    borderRadius: 60,
+    opacity: 0.9,
+    right: 16,
+  },
+  dotSm: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    backgroundColor: '#d9ffc2',
+    borderRadius: 12,
+    opacity: 0.9,
+  },
+
+  /* ===== CONTENT ===== */
+  content: { padding: 16, paddingBottom: 36 },
+
+  planTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0e2a1a',
+    marginBottom: 8,
+  },
+
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#d8f3c4',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardName: { fontSize: 18, fontWeight: '800', color: '#0f2610' },
+  cardBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#d4f4c4',
+    color: '#0b3d0b',
+    fontWeight: '800',
+    overflow: 'hidden',
+  },
+  cardBadgeMuted: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#e9eed7',
+    color: '#596163',
+    fontWeight: '800',
+    overflow: 'hidden',
+  },
+  cardPrice: { fontSize: 28, fontWeight: '900', marginTop: 6, color: '#0b3d0b' },
+  cardPriceMuted: { fontSize: 28, fontWeight: '900', marginTop: 6, color: '#88908f' },
+  cardSub: { fontSize: 13, opacity: 0.7, marginTop: 2 },
+
+  cta: {
+    marginTop: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: '#1f2937',
+  },
+  ctaText: { color: '#fff', fontWeight: '800' },
+  ctaDisabled: { backgroundColor: '#d7dde3' },
+
+  paymentsLink: { alignSelf: 'flex-end', marginTop: 18, paddingHorizontal: 6 },
+  paymentsText: { fontWeight: '900', color: '#0f2610', opacity: 0.85 },
+});

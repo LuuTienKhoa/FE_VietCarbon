@@ -20,6 +20,7 @@ import { userApi } from "../services/userApi";
 import { googleLogin } from "@/services/authApi";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -29,12 +30,15 @@ export default function LoginScreen() {
   const { showMessage } = useFlashMessage();
   const router = useRouter();
 
-  // Redirect với proxy để chạy mượt trong Expo Go
 const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-  clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!, // Web client ID
-  scopes: ["openid", "email", "profile"],
+  webClientId: "1068759411281-tq08k6gjrfipi4pjfbv0k01iqpojl49r.apps.googleusercontent.com", // Web client 
+  androidClientId: "1068759411281-tq08k6gjrfipi4pjfbv0k01iqpojl49r.apps.googleusercontent.com", // Android client
+    scopes: ["openid", "email", "profile"],
+    
 });
-
+// GoogleSignin.configure({
+//   webClientId: '',
+// });
   useEffect(() => {
     (async () => {
       if (response?.type !== "success") return;
