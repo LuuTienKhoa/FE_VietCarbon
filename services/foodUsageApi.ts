@@ -1,30 +1,49 @@
-    // services/foodUsageApi.ts
+// services/foodUsageApi.ts
 import http from './http';
 import { ApiResponse, wrap } from './userApi';
 
-export interface FoodUsage {
+export interface FoodItem {
   id: number;
-  userId?: number;
-  type?: string; // e.g., "meat", "veg"
-  amount?: number; // portion or grams
-  co2Estimate?: number;
-  recordedAt?: string;
+  foodCategory: number; // loại thực phẩm (1 = thịt, 2 = rau, v.v.)
+  weight: number;       // khối lượng (gram)
+  foodUsageId: number;  // liên kết tới FoodUsage cha
 }
 
+export interface FoodUsage {
+  id: number;
+  activityId: number;
+  date: string;         // ISO string
+  cO2Emission: number;
+  score: number;
+  foodItems: FoodItem[];
+}
+
+// Dữ liệu gửi lên khi POST hoặc PUT
 export interface FoodUsageRequest {
-  userId?: number;
-  type?: string;
-  amount?: number;
-  recordedAt?: string;
+  activityId?: number;
+  date?: string;
+  cO2Emission?: number;
+  score?: number;
+  foodItems: {
+    foodCategory: number;
+    weight: number;
+  }[];
 }
 
 const toFood = (raw: any): FoodUsage => ({
   id: Number(raw?.id ?? 0),
-  userId: raw?.userId,
-  type: raw?.type,
-  amount: raw?.amount,
-  co2Estimate: raw?.co2Estimate,
-  recordedAt: raw?.recordedAt,
+  activityId: Number(raw?.activityId ?? 0),
+  date: String(raw?.date ?? ''),
+  cO2Emission: Number(raw?.cO2Emission ?? 0),
+  score: Number(raw?.score ?? 0),
+  foodItems: Array.isArray(raw?.foodItems)
+    ? raw.foodItems.map((f: any) => ({
+        id: Number(f?.id ?? 0),
+        foodCategory: Number(f?.foodCategory ?? 0),
+        weight: Number(f?.weight ?? 0),
+        foodUsageId: Number(f?.foodUsageId ?? 0),
+      }))
+    : [],
 });
 
 async function list(params?: Record<string, any>): Promise<ApiResponse<FoodUsage[]>> {

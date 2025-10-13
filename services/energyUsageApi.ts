@@ -4,27 +4,26 @@ import { ApiResponse, wrap } from './userApi';
 
 export interface EnergyUsage {
   id: number;
-  userId?: number;
-  source?: string;
-  amount: number; // kWh or unit agreed
-  co2Estimate?: number;
-  recordedAt?: string;
+  activityId: number;
+  date: string;
+  electricityConsumption: number;
+  cO2Emission: number;
 }
 
+// Dữ liệu gửi lên khi PUT hoặc POST
 export interface EnergyUsageRequest {
-  userId?: number;
-  source?: string;
-  amount: number;
-  recordedAt?: string;
+  activityId?: number;
+  date?: string;
+  electricityConsumption: number;
+  cO2Emission?: number;
 }
 
 const toEnergy = (raw: any): EnergyUsage => ({
   id: Number(raw?.id ?? 0),
-  userId: raw?.userId,
-  source: raw?.source,
-  amount: Number(raw?.amount ?? 0),
-  co2Estimate: raw?.co2Estimate,
-  recordedAt: raw?.recordedAt,
+  activityId: Number(raw?.activityId ?? 0),
+  date: String(raw?.date ?? ''),
+  electricityConsumption: Number(raw?.electricityConsumption ?? 0),
+  cO2Emission: Number(raw?.cO2Emission ?? 0),
 });
 
 async function list(params?: Record<string, any>): Promise<ApiResponse<EnergyUsage[]>> {

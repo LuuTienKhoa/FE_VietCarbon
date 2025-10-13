@@ -1,30 +1,32 @@
-    // services/trafficUsageApi.ts
+// services/trafficUsageApi.ts
 import http from './http';
 import { ApiResponse, wrap } from './userApi';
 
 export interface TrafficUsage {
   id: number;
-  userId?: number;
-  mode?: string; // e.g., "car", "bus", "bike"
-  distanceKm?: number;
-  co2Estimate?: number;
-  recordedAt?: string;
+  activityId: number;
+  date: string; // ISO string
+  distance: number;
+  trafficCategory: number; // 1 = car, 2 = bus, etc.
+  cO2Emission: number;
 }
 
+// Dữ liệu gửi lên khi POST hoặc PUT
 export interface TrafficUsageRequest {
-  userId?: number;
-  mode?: string;
-  distanceKm?: number;
-  recordedAt?: string;
+  activityId?: number;
+  date?: string;
+  distance: number;
+  trafficCategory?: number;
+  cO2Emission?: number;
 }
 
 const toTraffic = (raw: any): TrafficUsage => ({
   id: Number(raw?.id ?? 0),
-  userId: raw?.userId,
-  mode: raw?.mode,
-  distanceKm: raw?.distanceKm,
-  co2Estimate: raw?.co2Estimate,
-  recordedAt: raw?.recordedAt,
+  activityId: Number(raw?.activityId ?? 0),
+  date: String(raw?.date ?? ''),
+  distance: Number(raw?.distance ?? 0),
+  trafficCategory: Number(raw?.trafficCategory ?? 0),
+  cO2Emission: Number(raw?.cO2Emission ?? 0),
 });
 
 async function list(params?: Record<string, any>): Promise<ApiResponse<TrafficUsage[]>> {
