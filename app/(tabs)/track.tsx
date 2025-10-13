@@ -1,760 +1,339 @@
-// app/(tabs)/track.tsx
-
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { ScreenWrapper } from '@/components/wrapper';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { apiService, TrafficCategory, UserActivities } from '@/services/api';
+import { apiService, User, UserActivities } from '@/services/api';
+import { energyUsageApi } from '@/services/energyUsageApi';
+import { trafficUsageApi } from '@/services/trafficUsageApi';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
-  StyleSheet, // Dùng Modal để hiển thị form chỉnh sửa
+  Platform,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PieChart } from 'react-native-gifted-charts';
 
 const customColors = {
   gaugeGreen: '#4CAF50',
   gaugeYellow: '#FFC107',
   gaugeRed: '#F44336',
-  cardBg: '#e6fcd9',
-  measureBg: '#f6fff0',
-  text: '#111111',
-  tint: '#4CAF50', 
+  cardBg: '#f3fff1',
+  text: '#111',
+  tint: '#4CAF50',
 };
 
-// Hàm giả lập tính toán lượng phát thải
-const getActivityEmission = (x: any): number => {
-    const value = x?.totalCO2Emission ?? x?.totalEmission ?? x?.co2Emission;
-    if (value === null || typeof value === 'undefined') return 0;
-    const floatValue = parseFloat(String(value)); 
-    return isNaN(floatValue) ? 0 : floatValue;
-};
-
-const isSameDay = (a: string | Date, b: Date) => {
-  const da = typeof a === "string" ? new Date(a) : a;
-  return (
-    da.getFullYear() === b.getFullYear() &&
-    da.getMonth() === b.getMonth() &&
-    da.getDate() === b.getDate()
-  );
-};
-
-const prettyTrafficType = (t?: number) => {
-    if (!t) return '—';
-    if (t === TrafficCategory.MOTORBIKE) return 'Xe máy'; 
-    if (t === TrafficCategory.CAR) return 'Ô tô'; 
-    if (t === TrafficCategory.BUS) return 'Xe buýt'; 
-    if (t === TrafficCategory.TRAIN) return 'Tàu hỏa'; 
-    if (t === TrafficCategory.PLANE) return 'Máy bay'; 
-    if (t === TrafficCategory.BICYCLE) return 'Xe đạp'; 
-    if (t === TrafficCategory.WALKING) return 'Đi bộ'; 
-    return 'Khác';
-}
-
-const getUsageCo2 = (x: any): number => {
-    const value = x?.cO2emission ?? x?.co2Estimate ?? 0;
-    const floatValue = parseFloat(String(value)); 
-    return isNaN(floatValue) ? 0 : floatValue;
-};
-
-
-// =========================================================
-// COMPONENT MỚI: MODAL CHỈNH SỬA
-// =========================================================
-
-// Định nghĩa kiểu cho dữ liệu cần chỉnh sửa
-type UsageData = {
-    type: string;
-    route: string;
-    color: string;
-    factorValue: string; // Giá trị hiện tại của Factor
-    factorUnit: string;
-};
-
-function EditUsageModal({ isVisible, onClose, data }: { isVisible: boolean, onClose: () => void, data: UsageData | null }) {
-    if (!data) return null;
-
-    const [inputValue, setInputValue] = useState(data.factorValue);
-    const [co2Estimate, setCo2Estimate] = useState(0); // Giả lập CO2 mới
-
-    const handleSave = () => {
-        // GIẢ LẬP: GỌI API UPDATE VÀ THỰC HIỆN LOGIC KHÔNG ĐỒNG BỘ
-        console.log(`Đang gửi update cho ${data.type}: ${inputValue}`);
-        Alert.alert("Thành công", `Đã cập nhật ${data.type} thành ${inputValue} ${data.factorUnit}. Vui lòng reload.`);
-        
-        // Đóng modal sau khi hoàn thành
-        onClose();
-        // Cần thêm logic để gọi lại fetchData() trong component TrackScreen
-    };
-
-    return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isVisible}
-            onRequestClose={onClose}
-        >
-            <View style={modalStyles.centeredView}>
-                <ThemedView style={[modalStyles.modalView, { backgroundColor: data.color }]}>
-                    <ThemedText style={modalStyles.modalTitle}>Cập nhật: {data.type}</ThemedText>
-                    
-                    <ThemedText style={modalStyles.label}>
-                        Giá trị {data.factorUnit} (hiện tại: {data.factorValue}):
-                    </ThemedText>
-
-                    <TextInput
-                        style={modalStyles.input}
-                        onChangeText={setInputValue}
-                        value={inputValue}
-                        keyboardType="numeric"
-                        placeholder={`Nhập ${data.factorUnit}`}
-                        placeholderTextColor="#ccc"
-                    />
-
-                    <ThemedText style={modalStyles.estimateText}>
-                        CO₂ ước tính mới: {co2Estimate.toFixed(2)} kg
-                    </ThemedText>
-
-                    <View style={modalStyles.buttonRow}>
-                        <TouchableOpacity 
-                            style={modalStyles.buttonClose} 
-                            onPress={onClose}
-                        >
-                            <ThemedText style={modalStyles.textStyle}>Hủy</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[modalStyles.button, modalStyles.buttonSave]}
-                            onPress={handleSave}
-                        >
-                            <ThemedText style={modalStyles.textStyle}>Lưu</ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </ThemedView>
-            </View>
-        </Modal>
-    );
-}
-
-// =========================================================
-// COMPONENTS GỐC (Đã chỉnh sửa để loại bỏ router.push)
-// =========================================================
-
-function TotalCO2Card({ emission, color, dateString }: { emission: number, color: string, dateString: string }) {
-    const formattedEmission = emission.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const label = dateString === '—' 
-        ? 'Lượng CO₂ gần nhất (ước tính)' 
-        : `Lượng CO₂ được ghi nhận (${dateString})`;
-
-    return (
-        <ThemedView style={[totalCo2Styles.card, { backgroundColor: color }]}>
-            <ThemedText style={totalCo2Styles.label}>
-                {label}
-            </ThemedText>
-            <ThemedText style={totalCo2Styles.value}>
-                {formattedEmission}
-                <ThemedText style={totalCo2Styles.unit}> kg</ThemedText>
-            </ThemedText>
-            <ThemedText style={totalCo2Styles.tip}>
-                Giá trị được lấy từ hoạt động có timestamp mới nhất.
-            </ThemedText>
-        </ThemedView>
-    );
-}
-
-function CO2LinearGauge({ emission }: { emission: number }) {
-  const DAILY_GOAL = 10;
-  
-  const percent = Math.min(emission / DAILY_GOAL, 1) * 100;
-  
-  let progressColor = customColors.gaugeGreen;
-  if (percent > 100) {
-    progressColor = customColors.gaugeRed;
-  } else if (percent > 70) {
-    progressColor = customColors.gaugeYellow;
-  }
-  
-  return (
-    <View style={linearGaugeStyles.container}>
-      <View style={linearGaugeStyles.barBackground}>
-        <View style={[
-          linearGaugeStyles.barProgress,
-          { width: `${percent}%`, backgroundColor: progressColor }
-        ]} />
-      </View>
-      <View style={linearGaugeStyles.labels}>
-        <ThemedText style={linearGaugeStyles.goalLabel}>
-          Mục tiêu: {DAILY_GOAL} kg
-        </ThemedText>
-        {emission > DAILY_GOAL && (
-          <ThemedText style={linearGaugeStyles.overGoalLabel}>
-            Vượt quá { (emission - DAILY_GOAL).toFixed(2) } kg!
-          </ThemedText>
-        )}
-      </View>
-    </View>
-  );
-}
-
-// UsageStatBox KHÔNG CÒN GỌI router.push NỮA, MÀ GỌI HÀM MỞ MODAL
-function UsageStatBox({ 
-    type, emission, factor, factorUnit, color, onPress // THÊM ONPRESS
-}: {
-    type: string; emission: number; factor: string; factorUnit: string; color: string; onPress: () => void; // OnPress thay cho route
-}) {
-    const formattedEmission = emission.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const factorLabel = factor !== '—' ? factor : `Chưa ghi nhận`;
-
-    return (
-        <TouchableOpacity 
-            style={[styles.statBox, { backgroundColor: color }]}
-            onPress={onPress} // GỌI ONPRESS TỪ CHỦ COMPONENT
-        >
-            <ThemedText style={styles.statType}>{type}</ThemedText>
-            <ThemedText style={styles.statValueDetail}>
-                {formattedEmission} kg CO₂ 
-            </ThemedText>
-            <ThemedText style={styles.statFactorLabel}>{factorUnit}:</ThemedText>
-            <ThemedText style={styles.statFactorValue}>{factorLabel}</ThemedText>
-        </TouchableOpacity>
-    );
-}
-
+// Utils
+const getActivityEmission = (x: UserActivities): number => x?.totalCO2Emission ?? 0;
+const getUsageCo2 = (x: { cO2Emission?: number } | undefined | null) => x?.cO2Emission ?? 0;
+const isSameDay = (a: string | Date, b: Date) => new Date(a).toDateString() === b.toDateString();
 
 export default function TrackScreen() {
+  const tintColor = useThemeColor({}, 'tint');
   const router = useRouter();
-  const tintColor = useThemeColor({}, 'tint'); 
+
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
-  const [activities, setActivities] = useState<UserActivities[]>([]);
-  
-  // STATE MỚI: Quản lý modal
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedUsage, setSelectedUsage] = useState<UsageData | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [todayActivity, setTodayActivity] = useState<UserActivities | null>(null);
 
+  // Modal Energy
+  const [showEnergyModal, setShowEnergyModal] = useState(false);
+  const [newElectricity, setNewElectricity] = useState('');
+  const [energyLoading, setEnergyLoading] = useState(false);
 
-  // Hàm mở modal và truyền dữ liệu
-  const handleOpenModal = (data: UsageData) => {
-      setSelectedUsage(data);
-      setIsModalVisible(true);
-  };
-  
-  // Hàm đóng modal
-  const handleCloseModal = () => {
-      setIsModalVisible(false);
-      setSelectedUsage(null);
-      // Logic: Cần gọi lại fetchData() ở đây để cập nhật dữ liệu sau khi lưu
-      // fetchData(); 
-  };
+  // Modal Traffic
+  const [showTrafficModal, setShowTrafficModal] = useState(false);
+  const [trafficKm, setTrafficKm] = useState('');
+  const [trafficCategory, setTrafficCategory] = useState(1);
+  const [trafficLoading, setTrafficLoading] = useState(false);
 
-
-  // Tải dữ liệu người dùng và hoạt động (Cần định nghĩa hàm fetchData riêng)
   const fetchData = async () => {
-      setLoading(true);
-      try {
-        const userRes = await apiService.user.me();
-        if (!userRes.success || !userRes.data) throw new Error("Không lấy được user.");
-        
-        // Logic tải hoạt động (giữ nguyên)
-        const userId = userRes.data.id;
-        const activitiesRes = await apiService.userActivities.getByUserId(userId);
-        
-        if (activitiesRes.success && activitiesRes.data) {
-            setActivities(activitiesRes.data);
+    setLoading(true);
+    try {
+      const userRes = await apiService.user.me();
+      if (!userRes.success || !userRes.data) throw new Error('Không thể xác thực người dùng.');
+      setCurrentUser(userRes.data);
+
+      const activitiesRes = await apiService.userActivities.getByUserId(userRes.data.id);
+      if (activitiesRes.success && activitiesRes.data) {
+        const today = new Date();
+        const todayData = activitiesRes.data.filter((x) => x.date && isSameDay(x.date, today));
+        if (todayData.length === 0) {
+          Alert.alert('Chưa có dữ liệu', 'Bạn chưa nhập dữ liệu hôm nay.', [
+            { text: 'Thêm thông tin', onPress: () => router.push('/measure') },
+          ]);
         } else {
-            console.error("Lỗi tải hoạt động:", activitiesRes.message);
+          const latest = todayData.sort((a, b) => b.id - a.id)[0];
+          setTodayActivity(latest);
         }
-        
-      } catch (e) {
-        console.error("Lỗi API:", e);
-      } finally {
-        setLoading(false);
       }
+    } catch (e: any) {
+      Alert.alert('Lỗi', e.message || 'Không thể tải dữ liệu.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
-  
-  // LOGIC HIỂN THỊ DỮ LIỆU (Giữ nguyên)
-  const lastRecordedActivity = useMemo(() => {
-      if (!activities.length) return null;
-      const sorted = [...activities].sort((a, b) => 
-          new Date((b as any).date as string).getTime() - new Date((a as any).date as string).getTime()
-      );
-      return sorted.length > 0 ? (sorted[0] as any) : null;
-  }, [activities]);
 
-  const todayEmission = useMemo(() => {
-      const today = new Date();
-      const todayActivities = activities.filter(x => isSameDay((x as any).date as string, today));
-      return todayActivities.reduce((sum, x) => sum + getActivityEmission(x), 0);
-  }, [activities]);
+  // Fill modal traffic khi mở
+  useEffect(() => {
+    if (showTrafficModal && todayActivity?.trafficUsage) {
+      setTrafficKm(String(todayActivity.trafficUsage.distance ?? ''));
+      setTrafficCategory(todayActivity.trafficUsage.trafficCategory ?? 1);
+    }
+  }, [showTrafficModal, todayActivity]);
 
-  const lastEmission = getActivityEmission(lastRecordedActivity);
-  const currentEmission = lastEmission;
-  
-  const currentEmissionDate = lastRecordedActivity 
-      ? new Date((lastRecordedActivity as any).date).toLocaleDateString('vi-VN')
-      : '—';
-  
-  const userName = currentUser?.userName || "string";
-  const screenBackground = customColors.cardBg; 
-  
-  // DỮ LIỆU CHO 4 Ô STATS (SỬA LỖI TRUY CẬP VÀ ĐỊNH DẠNG FACTOR)
-  const trafficUsageObj = lastRecordedActivity?.trafficUsage;
-  const foodUsageObj = lastRecordedActivity?.foodUsage;
-  const plasticUsageObj = lastRecordedActivity?.plasticUsage;
-  const energyUsageObj = lastRecordedActivity?.energyUsage;
-  
-  const trafficCo2 = getUsageCo2(trafficUsageObj);
-  const foodCo2 = getUsageCo2(foodUsageObj);
-  const plasticCo2 = getUsageCo2(plasticUsageObj);
-  const energyCo2 = getUsageCo2(energyUsageObj);
+  const todayEmission = todayActivity ? getActivityEmission(todayActivity) : 0;
 
-  // GIAO THÔNG
-  const trafficDistance = (trafficUsageObj as any)?.distance ?? '—';
-  const trafficFactorRaw = (trafficUsageObj as any)?.trafficCategory;
-  const trafficFactorName = prettyTrafficType(trafficFactorRaw);
+  const usageStats = useMemo(() => {
+    if (!todayActivity) return [];
+    return [
+      { type: 'Giao thông', emission: getUsageCo2(todayActivity.trafficUsage), color: '#4CAF50' },
+      { type: 'Thực phẩm', emission: getUsageCo2(todayActivity.foodUsage), color: '#00B0FF' },
+      { type: 'Nhựa', emission: getUsageCo2(todayActivity.plasticUsage), color: '#FF6F00' },
+      { type: 'Năng lượng', emission: getUsageCo2(todayActivity.energyUsage), color: '#9C27B0' },
+    ];
+  }, [todayActivity]);
 
-  // THỰC PHẨM
-  const foodAmountRaw = (foodUsageObj as any)?.amount;
-  const foodItemsCount = (foodUsageObj as any)?.foodItems?.length ?? 0;
-  const foodFactor = foodAmountRaw ? foodAmountRaw.toFixed(1) : (foodItemsCount > 0 ? 'Chi tiết' : '—');
-  const foodFactorUnit = foodAmountRaw ? "Lượng (g)" : "Khối lượng";
+  const total = usageStats.reduce((s, x) => s + x.emission, 0);
 
-  // NHỰA
-  const plasticFactorRaw = (plasticUsageObj as any)?.quantity ?? (plasticUsageObj as any)?.estimatedKg;
-  const plasticFactorUnit = (plasticUsageObj as any)?.quantity ? "Số lượng (item)" : "Khối lượng (kg)";
-  
-  // NĂNG LƯỢNG
-  const energyFactorRaw = (energyUsageObj as any)?.electricityconsumption;
+  const pieData = usageStats.map((x) => ({
+    value: x.emission,
+    color: x.color,
+    text: total > 0 ? ((x.emission / total) * 100).toFixed(1) + '%' : '0%',
+  }));
 
-  const usageStats = [
-      { 
-          type: "Giao thông", 
-          emission: trafficCo2, 
-          factor: `${trafficDistance} km`, 
-          factorUnit: 'Quãng đường (km)', 
-          color: customColors.gaugeGreen,
-          factorValue: String(trafficDistance),
-          route: '/measure/traffic'
-      },
-      { 
-          type: "Thực phẩm", 
-          emission: foodCo2, 
-          factor: foodFactor, 
-          factorUnit: foodFactorUnit, 
-          color: '#00B0FF', 
-          factorValue: foodAmountRaw?.toFixed(1) ?? '',
-          route: '/measure/food'
-      },
-      { 
-          type: "Nhựa", 
-          emission: plasticCo2, 
-          factor: plasticFactorRaw?.toFixed(2) ?? '—', 
-          factorUnit: plasticFactorUnit, 
-          color: '#FF6F00', 
-          factorValue: plasticFactorRaw?.toFixed(2) ?? '',
-          route: '/measure/plastic'
-      },
-      { 
-          type: "Năng lượng", 
-          emission: energyCo2, 
-          factor: energyFactorRaw?.toFixed(0) ?? '—', 
-          factorUnit: "Tiêu thụ (kWh)", 
-          color: '#9C27B0', 
-          factorValue: energyFactorRaw?.toFixed(0) ?? '',
-          route: '/measure/energy'
-      },
-  ];
+  const userName = currentUser?.userName || 'bạn';
+  const todayStr = new Date().toLocaleDateString('vi-VN');
+
+  // Update Energy
+  const handleUpdateEnergy = async () => {
+    if (!todayActivity?.energyUsage?.id) return Alert.alert('Lỗi', 'Không tìm thấy ID năng lượng.');
+    const electricity = parseFloat(newElectricity);
+    if (isNaN(electricity) || electricity < 0) return Alert.alert('Lỗi', 'Giá trị không hợp lệ.');
+
+    try {
+      setEnergyLoading(true);
+      const res = await energyUsageApi.update(todayActivity.energyUsage.id, {
+        electricityConsumption: electricity,
+        cO2Emission: electricity * 0.5,
+        date: new Date().toISOString(),
+        activityId: todayActivity.id,
+      });
+      if (res.success) {
+        Alert.alert('Thành công', 'Đã cập nhật năng lượng!');
+        setShowEnergyModal(false);
+        fetchData();
+      } else throw new Error('Cập nhật thất bại.');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e.message || 'Không thể cập nhật dữ liệu.');
+    } finally {
+      setEnergyLoading(false);
+    }
+  };
+
+  // Update Traffic
+  const co2Rates: Record<number, number> = { 1: 0.045, 2: 0.102, 3: 0.041, 4: 0, 5: 0, 6: 0.225, 7: 0.23 };
+  const handleUpdateTraffic = async () => {
+    if (!todayActivity?.trafficUsage?.id) return Alert.alert('Lỗi', 'Không tìm thấy ID giao thông.');
+    const km = parseFloat(trafficKm);
+    if (isNaN(km) || km < 0) return Alert.alert('Lỗi', 'Quãng đường không hợp lệ.');
+
+    try {
+      setTrafficLoading(true);
+      const res = await trafficUsageApi.update(todayActivity.trafficUsage.id, {
+        distance: km,
+        trafficCategory,
+        cO2Emission: km * (co2Rates[trafficCategory] ?? 0),
+        date: new Date().toISOString(),
+        activityId: todayActivity.id,
+      });
+      if (res.success) {
+        Alert.alert('Thành công', 'Đã cập nhật giao thông!');
+        setShowTrafficModal(false);
+        fetchData();
+      } else throw new Error('Cập nhật thất bại.');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e.message || 'Không thể cập nhật dữ liệu.');
+    } finally {
+      setTrafficLoading(false);
+    }
+  };
 
   return (
-    <ScreenWrapper 
-      scroll 
-      containerStyle={{ backgroundColor: screenBackground }}
+    <ScreenWrapper
+      scroll
+      containerStyle={{ backgroundColor: customColors.cardBg }}
       contentContainerStyle={styles.contentContainer}
     >
       {loading ? (
-        <ThemedView style={styles.loadingContainer}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={tintColor} />
           <ThemedText>Đang tải dữ liệu...</ThemedText>
-        </ThemedView>
+        </View>
       ) : (
         <>
-          {/* PHẦN HEADER */}
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerAvatar} />
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <ThemedText style={styles.helloText}>
-                Xin chào, {userName} !
-              </ThemedText>
+            <View style={styles.headerTextContainer}>
+              <ThemedText style={styles.helloText}>Xin chào, {userName} 👋</ThemedText>
               <ThemedText style={styles.noDataText}>
-                {todayEmission === 0 ? "Chưa có dữ liệu hôm nay." : "Đã nhập dữ liệu hôm nay."}
+                {todayEmission === 0 ? 'Chưa có dữ liệu hôm nay.' : 'Dữ liệu hôm nay đã được ghi nhận.'}
               </ThemedText>
             </View>
-            <TouchableOpacity style={styles.menuButton}>
-                <ThemedText style={{ fontSize: 24, lineHeight: 24 }}>≡</ThemedText>
-            </TouchableOpacity>
           </View>
 
-          {/* KHUNG HIỂN THỊ TỔNG CO2 LỚN */}
-          <TotalCO2Card emission={currentEmission} color={tintColor} dateString={currentEmissionDate} /> 
-
-          {/* KHUNG TÁC ĐỘNG CO2 (LINEAR GAUGE) */}
-          <View style={[styles.gaugeCard, { backgroundColor: customColors.cardBg }]}>
-            <View style={styles.gaugeInfo}>
-              <ThemedText style={styles.gaugeTitle}>Tác động CO₂ hôm nay</ThemedText> 
-              <ThemedText style={styles.gaugeSubtitle}>Mục tiêu hàng ngày</ThemedText> 
+          {/* Tổng CO₂ */}
+          <View style={styles.co2Card}>
+            <ThemedText style={styles.co2Label}>Tổng lượng CO₂ hôm nay ({todayStr})</ThemedText>
+            <View style={styles.co2Row}>
+              <Ionicons name="cloud-outline" size={36} color="#1B5E20" style={{ marginRight: 6 }} />
+              <ThemedText style={styles.co2Value}>{todayEmission.toFixed(2)}</ThemedText>
+              <ThemedText style={styles.co2Unit}>kg</ThemedText>
             </View>
-            <CO2LinearGauge emission={currentEmission} />
           </View>
 
-          {/* KHUNG THỐNG KÊ CHI TIẾT 4 LOẠI (LÀM CHỨC NĂNG NHẬP LIỆU) */}
-          <ThemedText style={styles.sectionTitle}>Cập nhật Ghi nhận hoạt động</ThemedText>
-          <View style={styles.statsGrid}>
-              {usageStats.map((stat, index) => (
-                  <UsageStatBox 
-                      key={index}
-                      type={stat.type}
-                      emission={stat.emission}
-                      factor={stat.factor}
-                      factorUnit={stat.factorUnit}
-                      color={stat.color}
-                    
-                      
-                      // Dùng onPress để mở Modal
-                      onPress={() => handleOpenModal(stat as UsageData)}
-                  />
+          {/* Biểu đồ */}
+          <View style={styles.chartContainer}>
+            <ThemedText style={styles.chartTitle}>Tỉ lệ phát thải CO₂ theo hạng mục</ThemedText>
+            {pieData.length > 0 ? (
+              <PieChart data={pieData} donut radius={100} innerRadius={55} showText textColor="white" textSize={13} />
+            ) : (
+              <ThemedText>Chưa có dữ liệu hôm nay.</ThemedText>
+            )}
+            <View style={styles.legend}>
+              {usageStats.map((item, i) => (
+                <View key={i} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                  <ThemedText style={styles.legendText}>{item.type}</ThemedText>
+                </View>
               ))}
+            </View>
           </View>
+
+          {/* Thống kê chi tiết */}
+          <ThemedText style={styles.sectionTitle}>Phát thải chi tiết</ThemedText>
+          <View style={styles.statsGrid}>
+            {usageStats.map((x, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[styles.statBox, { backgroundColor: x.color }]}
+                onPress={() => {
+                  if (x.type === 'Năng lượng') setShowEnergyModal(true);
+                  if (x.type === 'Giao thông') setShowTrafficModal(true);
+                }}
+              >
+                <ThemedText style={styles.statType}>{x.type}</ThemedText>
+                <ThemedText style={styles.statValue}>{x.emission.toFixed(2)} kg CO₂</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Modal Energy */}
+          <Modal visible={showEnergyModal} transparent animationType="fade">
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <ThemedText style={styles.modalTitle}>Cập nhật điện năng (kWh)</ThemedText>
+                <TextInput
+                  placeholder="Nhập số điện năng tiêu thụ..."
+                  keyboardType="numeric"
+                  value={newElectricity}
+                  onChangeText={setNewElectricity}
+                  style={styles.input}
+                  editable={!energyLoading}
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity onPress={() => setShowEnergyModal(false)} style={[styles.modalBtn, { backgroundColor: '#ccc' }]}>
+                    <ThemedText>Hủy</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleUpdateEnergy} style={[styles.modalBtn, { backgroundColor: '#4CAF50' }]}>
+                    {energyLoading ? <ActivityIndicator color="#fff" /> : <ThemedText style={{ color: '#fff' }}>Lưu</ThemedText>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Modal>
+
+          {/* Modal Traffic */}
+          <Modal visible={showTrafficModal} transparent animationType="fade">
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <ThemedText style={styles.modalTitle}>Cập nhật giao thông</ThemedText>
+                <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 12, marginBottom: 12 }}>
+                  <Picker selectedValue={trafficCategory} onValueChange={(value) => setTrafficCategory(value)}>
+                    <Picker.Item label="Ô tô xăng" value={1} />
+                    <Picker.Item label="Xe buýt" value={2} />
+                    <Picker.Item label="Tàu hỏa" value={3} />
+                    <Picker.Item label="Xe đạp" value={4} />
+                    <Picker.Item label="Đi bộ" value={5} />
+                    <Picker.Item label="Máy bay" value={6} />
+                    <Picker.Item label="Ô tô dầu" value={7} />
+                  </Picker>
+                </View>
+                <TextInput
+                  placeholder="Nhập quãng đường (km)..."
+                  keyboardType="numeric"
+                  value={trafficKm}
+                  onChangeText={setTrafficKm}
+                  style={styles.input}
+                  editable={!trafficLoading}
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity onPress={() => setShowTrafficModal(false)} style={[styles.modalBtn, { backgroundColor: '#ccc' }]}>
+                    <ThemedText>Hủy</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleUpdateTraffic} style={[styles.modalBtn, { backgroundColor: '#4CAF50' }]}>
+                    {trafficLoading ? <ActivityIndicator color="#fff" /> : <ThemedText style={{ color: '#fff' }}>Lưu</ThemedText>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Modal>
         </>
       )}
-      
-      {/* MODAL CHỈNH SỬA INLINE */}
-      <EditUsageModal 
-          isVisible={isModalVisible} 
-          onClose={handleCloseModal} 
-          data={selectedUsage}
-      />
     </ScreenWrapper>
   );
 }
 
-/* ==================== STYLES CHO MODAL ==================== */
-
-const modalStyles = StyleSheet.create({
-    centeredView: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalView: {
-        margin: 20,
-        borderRadius: 20,
-        padding: 35,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-        width: '90%',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 15,
-    },
-    label: {
-        color: '#fff',
-        marginBottom: 8,
-        alignSelf: 'flex-start',
-        fontWeight: '600',
-    },
-    input: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 10,
-        padding: 10,
-        color: '#fff',
-        width: '100%',
-        marginBottom: 20,
-        fontSize: 16,
-    },
-    estimateText: {
-        color: '#fff',
-        marginBottom: 20,
-        fontWeight: '700',
-        fontSize: 16,
-    },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    button: {
-        borderRadius: 10,
-        padding: 10,
-        elevation: 2,
-        flex: 1,
-        marginHorizontal: 5,
-    },
-    buttonSave: {
-        backgroundColor: '#fff',
-    },
-    buttonClose: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 10,
-        padding: 10,
-        elevation: 2,
-        flex: 1,
-        marginHorizontal: 5,
-    },
-    textStyle: {
-        color: customColors.text,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-});
-
-/* ==================== STYLES KHÁC GIỮ NGUYÊN ==================== */
-
-const totalCo2Styles = StyleSheet.create({
-    card: {
-        borderRadius: 18,
-        padding: 20,
-        marginBottom: 20,
-        alignItems: 'center',
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: customColors.text,
-        opacity: 0.8,
-    },
-    value: {
-        fontSize: 48, 
-        fontWeight: '900',
-        color: customColors.text,
-        marginTop: 4,
-        lineHeight: 52, 
-        textAlign: 'center',
-    },
-    unit: {
-        fontSize: 24,
-        fontWeight: '700',
-    },
-    tip: {
-        fontSize: 13,
-        color: customColors.text,
-        opacity: 0.6,
-        marginTop: 8,
-        textAlign: 'center',
-    }
-})
-
-// Styles cho Linear Gauge
-const linearGaugeStyles = StyleSheet.create({
-    container: {
-        width: '50%',
-        paddingRight: 10,
-        alignItems: 'flex-end',
-    },
-    barBackground: {
-        width: '100%',
-        height: 12,
-        backgroundColor: '#E0E0E0',
-        borderRadius: 6,
-        overflow: 'hidden',
-        marginBottom: 8,
-    },
-    barProgress: {
-        height: '100%',
-        borderRadius: 6,
-    },
-    labels: {
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 2,
-    },
-    goalLabel: {
-        fontSize: 12,
-        color: customColors.text,
-        opacity: 0.7,
-    },
-    overGoalLabel: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: customColors.gaugeRed,
-    }
-});
-
-
-/* ==================== Styles cho Grid 4 ô (MỚI) ==================== */
-
 const styles = StyleSheet.create({
-  contentContainer: { paddingVertical: 0, flexGrow: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  // Header
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 20, 
-    paddingTop: 10,
-    paddingHorizontal: 16,
-  },
-  headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#333',
-  },
+  contentContainer: { paddingVertical: 10 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 16, paddingTop: 10 },
+  headerAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#333' },
+  headerTextContainer: { flex: 1, alignItems: 'flex-start', marginLeft: 12 },
   helloText: { fontSize: 18, fontWeight: 'bold' },
   noDataText: { fontSize: 13, opacity: 0.7 },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 1,
-  },
-  
-  // Gauge Card (Chứa Linear Gauge)
-  gaugeCard: {
-    borderRadius: 18,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginHorizontal: 16,
-  },
-  gaugeInfo: { flex: 1, paddingRight: 10 },
-  gaugeTitle: { fontSize: 16, fontWeight: 'bold', color: customColors.text, marginBottom: 4 },
-  gaugeSubtitle: { fontSize: 13, opacity: 0.7 },
-
-  // Small Stats Grid
-  statsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      marginHorizontal: 16,
-      marginBottom: 20,
-      marginTop: 8,
-  },
-  statBox: {
-      width: '48%', // Tạo grid 2x2
-      minHeight: 120,
-      borderRadius: 16,
-      padding: 12,
-      marginBottom: 10,
-      alignItems: 'flex-start',
-  },
-  statType: {
-      fontSize: 13,
-      fontWeight: 'bold',
-      color: '#fff',
-      opacity: 0.8,
-      marginBottom: 4,
-  },
-  statValueDetail: {
-      fontSize: 18,
-      fontWeight: '900',
-      color: '#fff',
-      marginTop: 2,
-  },
-  statFactorLabel: {
-      fontSize: 11,
-      color: '#fff',
-      opacity: 0.7,
-      marginTop: 4,
-  },
-  statFactorValue: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#fff',
-  },
-  sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: customColors.text,
-      paddingHorizontal: 16,
-      marginBottom: 4,
-      marginTop: 10,
-  },
-});
-
-// Styles cho Component Đồng Hồ CŨ (Giữ lại để tránh lỗi nếu có nơi khác sử dụng)
-const gaugeStyles = StyleSheet.create({
-  gaugeContainer: {
-    width: 150,
-    height: 150,
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0, // Ẩn component cũ
-    position: 'absolute',
-  },
-  arcWrapper: {
-    width: 150,
-    height: 75,
-    overflow: 'hidden',
-    position: 'absolute',
-    top: 0,
-    flexDirection: 'row',
-  },
-  arc: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-  },
-  arcGreen: { backgroundColor: customColors.gaugeGreen, left: 0, width: 75, borderTopLeftRadius: 75, borderBottomLeftRadius: 75 }, 
-  arcYellow: { backgroundColor: customColors.gaugeYellow, left: 75, width: 75, opacity: 0.5 }, 
-  arcRed: { backgroundColor: customColors.gaugeRed, right: 0, width: 75, opacity: 0.5 },
-
-  centerCircle: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: customColors.text,
-    bottom: 0,
-  },
-  needle: {
-    position: 'absolute',
-    bottom: 6,
-    width: 2,
-    height: 70,
-    transformOrigin: 'bottom center',
-  },
-  labelSmall: { fontSize: 14, fontWeight: 'bold', position: 'absolute', bottom: -20, textAlign: 'center' },
-});
-
-// Styles cho Component Nút Nhập liệu (Không dùng)
-const measureStyles = StyleSheet.create({
-  button: {
-    backgroundColor: customColors.measureBg,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0', 
-  },
-  label: { fontSize: 15, fontWeight: '600' },
-  subLabel: { fontSize: 12, opacity: 0.6, marginTop: 2 },
+  co2Card: { borderRadius: 20, padding: 20, backgroundColor: '#e0f8e3', marginHorizontal: 16, alignItems: 'center', marginBottom: 20 },
+  co2Label: { fontSize: 16, fontWeight: 'bold', color: customColors.text },
+  co2Row: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 6 },
+  co2Value: { fontSize: 48, fontWeight: '900', color: customColors.text, lineHeight: 52 },
+  co2Unit: { fontSize: 22, fontWeight: '700', color: customColors.text, marginBottom: 8, marginLeft: 2 },
+  chartContainer: { alignItems: 'center', marginBottom: 20 },
+  chartTitle: { fontSize: 16, fontWeight: '700', color: customColors.text, marginBottom: 10 },
+  legend: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 4 },
+  legendText: { fontSize: 13, color: customColors.text },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', color: customColors.text, marginVertical: 8 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginHorizontal: 16 },
+  statBox: { width: '48%', borderRadius: 16, padding: 12, marginBottom: 10, alignItems: 'center' },
+  statType: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+  statValue: { fontSize: 18, fontWeight: '900', color: '#fff', marginTop: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
+  modalContent: { width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, marginBottom: 15 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
+  modalBtn: { flex: 1, marginHorizontal: 5, padding: 10, borderRadius: 8, alignItems: 'center' },
 });

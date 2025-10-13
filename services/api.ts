@@ -80,7 +80,17 @@ import { recommendApi } from './recommendApi';
 import { trafficUsageApi } from './trafficUsageApi';
 import { transactionApi } from './transactionApi';
 import { userActivitiesApi } from './userActivitiesApi';
-import { userApi } from './userApi';
+import { ApiResponse, userApi } from './userApi';
+
+// Ensure all APIs have a 'list' property defined
+const ensureListProperty = (api: { list?: () => Promise<ApiResponse<any[]>> }) => {
+  if (!api.list) {
+    api.list = async () => ({ success: true, data: [] });
+  }
+};
+
+// Apply the fix to all APIs
+[challengeApi, challengeProgressApi, energyUsageApi, foodUsageApi, notifyApi, plasticUsageApi, recommendApi, trafficUsageApi, transactionApi, userActivitiesApi, userApi].forEach(ensureListProperty);
 
 // Unified API Service
 export const apiService = {

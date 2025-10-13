@@ -2,13 +2,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+
 import {
   Animated,
   Platform,
   StyleSheet,
   TouchableOpacity,
-  View,
-  type ColorValue,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -48,7 +48,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     // ⛳️ KHÔNG paddingBottom ở đây (tránh “đội” bar lên)
     <View style={styles.wrap}>
       <LinearGradient
-        colors={BG_GRADIENT as readonly ColorValue[]}
+        colors={BG_GRADIENT}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
@@ -160,29 +160,29 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="suggestions"
-        options={{
-          title: "Gợi ý",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "bulb" : "bulb-outline"}
-              size={25}
-              color={color ?? ICON_COLOR}
-            />
-          ),
-        }}
-      />
+     <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "Xếp hạng",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "trophy" : "trophy-outline"}
+              size={25}
+              color={color ?? ICON_COLOR}
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="challenges"
         options={{
           title: "Thử thách",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "trophy" : "trophy-outline"}
-              size={25}
-              color={color ?? ICON_COLOR}
-            />
+              name={focused ? "flame" : "flame-outline"} 
+              size={25}
+              color={color ?? ICON_COLOR}
+            />
           ),
         }}
       />

@@ -1,10 +1,33 @@
 // services/userActivitiesApi.ts
+import { EnergyUsage, FoodUsage, PlasticUsage, TrafficUsage } from './api';
 import http from './http';
 import { ApiResponse, wrap } from './userApi';
-// Import các interface usage từ api.ts để hỗ trợ cấu trúc lồng nhau
-import { EnergyUsage, FoodUsage, PlasticUsage, TrafficUsage } from './api';
 
 // CẬP NHẬT INTERFACE: THÊM CÁC TRƯỜNG TỪ RESPONSE API
+export interface UserActivities {
+  id: number;
+  userId?: number;
+  date?: string; 
+  totalCO2Emission?: number; 
+  plasticUsageId?: number;
+  trafficUsageId?: number;
+  foodUsageId?: number;
+  energyUsageId?: number;
+  plasticUsage?: PlasticUsage; 
+  trafficUsage?: TrafficUsage; 
+  foodUsage?: FoodUsage;     
+  energyUsage?: EnergyUsage;   
+  action?: string;
+  details?: any;
+  createdAt?: string;
+  co2Emission?: number;
+  points?: number;
+}
+export interface LeaderboardEntry {
+  userName: string;
+  totalCO2Emission: number;
+}
+
 export interface UserActivities {
   id: number;
   userId?: number;
@@ -100,18 +123,20 @@ async function getByUserId(userId: number): Promise<ApiResponse<UserActivities[]
   return res.success ? { ...res, data: (res.data ?? []).map(toActivity) } : res;
 }
 
-async function getLeaderBoard(): Promise<ApiResponse<UserActivities[]>> {
-  // Giả định LeaderBoard cũng cần /api
-  const res = await wrap<UserActivities[]>(() => http.get('/api/UserActivities/leaderboard'));
-  return res.success ? { ...res, data: (res.data ?? []).map(toActivity) } : res;
+
+async function getLeaderBoard(): Promise<ApiResponse<LeaderboardEntry[]>> {
+  const res = await wrap<LeaderboardEntry[]>(() => 
+    http.get('/UserActivities/LeaderBoard') // <-- ĐÃ SỬA LỖI
+  );
+  return res;
 }
 
 export const userActivitiesApi = { 
-  list, 
-  getById, 
-  create, 
-  update, 
-  remove, 
-  getByUserId, 
-  getLeaderBoard 
+  list, 
+  getById, 
+  create, 
+  update, 
+  remove, 
+  getByUserId, 
+  getLeaderBoard 
 };
