@@ -5,10 +5,11 @@
     "version": "1.0.0",
     "description": "Ứng dụng đo lường và giảm thiểu CO₂ cá nhân",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/logo.jpg",
     "scheme": "vietcarbon",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tienkhoa.vietcarbon",
@@ -18,7 +19,8 @@
         "NSPhotoLibraryUsageDescription": "VietCarbon cần truy cập thư viện ảnh để chọn ảnh"
       }
     },
-    "android": {    
+    
+    "android": {
       "package": "com.tienkhoa.vietcarbon",
       "versionCode": 1,
       "adaptiveIcon": {
@@ -52,11 +54,13 @@
         }
       ]
     },
+    
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
       "bundler": "metro"
     },
+    
     "plugins": [
       "expo-router",
       [
@@ -76,28 +80,31 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
             "buildToolsVersion": "34.0.0"
           },
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "13.4"
           }
         }
-      ],
-      "expo-font"
+      ]
     ],
+    
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
+    
     "extra": {
       "router": {},
       "eas": {
         "projectId": "0d6cf527-b195-4162-9567-8d875bb6a18a"
       }
     },
+    
     "owner": "tienkhoa",
+    
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -107,9 +114,23 @@
         "backgroundColor": "#000000"
       }
     },
+    
     "assetBundlePatterns": [
       "**/*"
     ],
-    "githubUrl": "https://github.com/LuuTienKhoa/FE_VietCarbon"
+    
+    "privacy": "public",
+    
+    "githubUrl": "https://github.com/tienkhoa/viet-carbon",
+    
+    "keywords": [
+      "carbon",
+      "footprint",
+      "environment",
+      "sustainability",
+      "vietnam",
+      "co2",
+      "tracking"
+    ]
   }
 }
