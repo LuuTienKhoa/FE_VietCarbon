@@ -149,6 +149,7 @@ export default function TrackScreen() {
     try {
       setTrafficLoading(true);
       const res = await trafficUsageApi.update(todayActivity.trafficUsage.id, {
+        id: todayActivity.trafficUsage.id,
         distance: km,
         trafficCategory,
         cO2Emission: km * (co2Rates[trafficCategory] ?? 0),
