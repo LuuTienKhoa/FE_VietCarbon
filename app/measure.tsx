@@ -196,7 +196,6 @@ export default function DailyLogScreen() {
           <ThemedText style={styles.label}>Quãng đường (km)</ThemedText>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: 10.5"
             keyboardType="numeric"
             value={formData.trafficUsage.distance}
             onChangeText={text => handleInputChange('trafficUsage', 'distance', text)}
@@ -224,7 +223,6 @@ export default function DailyLogScreen() {
           <ThemedText style={styles.label}>Khối lượng (kg)</ThemedText>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: 200"
             keyboardType="numeric"
             value={formData.foodUsage.foodItems[0].weight}
             onChangeText={text => handleInputChange('foodUsage', 'weight', text)}
@@ -249,10 +247,9 @@ export default function DailyLogScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <ThemedText style={styles.label}>Khối lượng (gram)</ThemedText>
+          <ThemedText style={styles.label}>Khối lượng (kg)</ThemedText>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: 50"
             keyboardType="numeric"
             value={formData.plasticUsage.plasticItems[0].weight}
             onChangeText={text => handleInputChange('plasticUsage', 'weight', text)}
@@ -265,7 +262,6 @@ export default function DailyLogScreen() {
           <ThemedText style={styles.label}>Điện năng tiêu thụ (kWh)</ThemedText>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: 15"
             keyboardType="numeric"
             value={formData.energyUsage.electricityConsumption}
             onChangeText={text => handleInputChange('energyUsage', 'electricityConsumption', text)}
