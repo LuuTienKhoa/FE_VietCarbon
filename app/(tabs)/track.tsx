@@ -65,11 +65,7 @@ export default function TrackScreen() {
       if (activitiesRes.success && activitiesRes.data) {
         const today = new Date();
         const todayData = activitiesRes.data.filter((x) => x.date && isSameDay(x.date, today));
-        if (todayData.length === 0) {
-          Alert.alert('Chưa có dữ liệu', 'Bạn chưa nhập dữ liệu hôm nay.', [
-            { text: 'Thêm thông tin', onPress: () => router.push('/measure') },
-          ]);
-        } else {
+        if (todayData.length > 0) {
           const latest = todayData.sort((a, b) => b.id - a.id)[0];
           setTodayActivity(latest);
         }
@@ -94,6 +90,7 @@ export default function TrackScreen() {
   }, [showTrafficModal, todayActivity]);
 
   const todayEmission = todayActivity ? getActivityEmission(todayActivity) : 0;
+  const hasTodayData = !!todayActivity;
 
   const usageStats = useMemo(() => {
     if (!todayActivity) return [];
@@ -180,6 +177,16 @@ export default function TrackScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={tintColor} />
           <ThemedText>Đang tải dữ liệu...</ThemedText>
+        </View>
+      ) : !hasTodayData ? (
+        <View style={styles.noDataContainer}>
+          <ThemedText style={styles.noDataText}>Chưa có dữ liệu hôm nay.</ThemedText>
+          <TouchableOpacity
+            style={styles.measureButton}
+            onPress={() => router.push('/measure')}
+          >
+            <ThemedText style={styles.measureButtonText}>Nhập dữ liệu</ThemedText>
+          </TouchableOpacity>
         </View>
       ) : (
         <>
@@ -309,11 +316,21 @@ export default function TrackScreen() {
 const styles = StyleSheet.create({
   contentContainer: { paddingVertical: 10 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noDataText: { fontSize: 16, fontWeight: '500', color: '#111', marginBottom: 10 },
+  measureButton: {
+    marginTop: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    elevation: 3,
+  },
+  measureButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 16, paddingTop: 10 },
   headerAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#333' },
   headerTextContainer: { flex: 1, alignItems: 'flex-start', marginLeft: 12 },
   helloText: { fontSize: 18, fontWeight: 'bold' },
-  noDataText: { fontSize: 13, opacity: 0.7 },
   co2Card: { borderRadius: 20, padding: 20, backgroundColor: '#e0f8e3', marginHorizontal: 16, alignItems: 'center', marginBottom: 20 },
   co2Label: { fontSize: 16, fontWeight: 'bold', color: customColors.text },
   co2Row: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 6 },
@@ -335,5 +352,5 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, marginBottom: 15 },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
-  modalBtn: { flex: 1, marginHorizontal: 5, padding: 10, borderRadius: 8, alignItems: 'center' },
+  modalBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
 });

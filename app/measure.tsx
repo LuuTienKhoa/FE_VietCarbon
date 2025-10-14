@@ -1,4 +1,4 @@
-// app/measure/daily.tsx
+// app/measure.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ScreenWrapper } from '@/components/wrapper';
 import { apiService, FoodCategory, PlasticCategory, TrafficCategory } from '@/services/api';
