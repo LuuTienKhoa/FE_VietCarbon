@@ -9,12 +9,18 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://10.0.2.2:5099/api"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.1.100:5099/api"
       }
     },
     "production": {
@@ -25,6 +31,9 @@
       },
       "ios": {
         "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.vietcarbon.app/api"
       }
     }
   },
