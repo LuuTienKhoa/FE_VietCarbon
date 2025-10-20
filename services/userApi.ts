@@ -25,7 +25,39 @@ export type ApiResponse<T> = {
 };
 
 export type AuthPayload = { user: User; token: string };
+/** ====== PayOS Return Types ====== */
+export type PayOsReturnBody = {
+  code: string;
+  desc: string;
+  success: boolean;
+  signature: string;
+  data?: {
+    orderCode: number;
+    amount: number;
+    description?: string;
+    accountNumber?: string;
+    reference?: string;
+    transactionDateTime?: string;
+    currency?: string;
+    paymentLinkId?: string;
+    code?: string;
+    desc?: string;
+    counterAccountBankId?: string;
+    counterAccountBankName?: string;
+    counterAccountName?: string;
+    counterAccountNumber?: string;
+    virtualAccountName?: string;
+    virtualAccountNumber?: string;
+  };
+};
 
+export type PaymentReturnResult = {
+  updated?: boolean;                 
+  transactionStatus?: string;        
+  subscriptionType?: number;        
+  orderCode?: number;
+  message?: string;
+};
 /** ====== Helpers chuẩn hóa ====== */
 const toUser = (raw: any): User => ({
   id: Number(raw?.id ?? 0),
@@ -83,7 +115,7 @@ async function register(payload: RegisterRequest): Promise<ApiResponse<AuthPaylo
   return normalizeAuth(res);
 }
 
-async function me(): Promise<ApiResponse<User>> {
+export async function me(): Promise<ApiResponse<User>> {
   const res = await wrap<User>(() => http.get('/User/me'));
   return res.success ? { ...res, data: res.data ? toUser(res.data) : undefined } : res;
 }
@@ -115,13 +147,12 @@ async function changePassword(payload: ChangePasswordRequest): Promise<ApiRespon
   return wrap<null>(() => http.post('/User/change-password', payload));
 }
 
-export async function upgrade(plan: 1 | 2, returnUrl?: string, cancelUrl?: string) {
-  return wrap<any>(() => http.post("/User/upgrade", { plan, returnUrl, cancelUrl }));
+export async function paymentReturn(payload: PayOsReturnBody): Promise<ApiResponse<PaymentReturnResult>> {
+  return wrap<PaymentReturnResult>(() => http.post('/Transaction/payment-return', payload));
 }
 
-async function updateRole(id: number | string, role: string): Promise<ApiResponse<User>> {
-  const res = await wrap<User>(() => http.put(`/User/${id}/role`, { role }));
-  return res.success ? { ...res, data: res.data ? toUser(res.data) : undefined } : res;
+export async function upgrade(plan: 1 | 2, returnUrl?: string, cancelUrl?: string) {
+  return wrap<any>(() => http.post("/User/upgrade", { plan, returnUrl, cancelUrl }));
 }
 
 export const userApi = {
@@ -133,6 +164,5 @@ export const userApi = {
   update,
   remove,
   changePassword,
-  upgrade,
-  updateRole,
+  paymentReturn,
 };

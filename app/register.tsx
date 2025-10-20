@@ -43,7 +43,7 @@ export default function RegisterScreen() {
         Alert.alert(
           'Đăng ký thành công',
           'Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.',
-          [{ text: 'OK', onPress: () => router.replace('/login') }]
+          [{ text: 'OK', onPress: () => router.push('/login') }]
         );
       } else {
         setError(response.error || 'Đăng ký thất bại');
