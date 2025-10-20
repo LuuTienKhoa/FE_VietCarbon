@@ -94,6 +94,7 @@
     },
     "extra": {
       "router": {},
+      "googleClientId": "1068759411281-tq08k6gjrfipi4pjfbv0k01iqpojl49r.apps.googleusercontent.com",
       "eas": {
         "projectId": "0d6cf527-b195-4162-9567-8d875bb6a18a"
       }
