@@ -147,6 +147,10 @@ async function changePassword(payload: ChangePasswordRequest): Promise<ApiRespon
   return wrap<null>(() => http.post('/User/change-password', payload));
 }
 
+export async function googleLogin(idToken: string): Promise<ApiResponse<AuthPayload>> {
+  const res = await wrap<any>(() => http.post("/User/google-login", { idToken }));
+  return normalizeAuth(res);
+}
 export async function paymentReturn(payload: PayOsReturnBody): Promise<ApiResponse<PaymentReturnResult>> {
   return wrap<PaymentReturnResult>(() => http.post('/Transaction/payment-return', payload));
 }
@@ -165,4 +169,5 @@ export const userApi = {
   remove,
   changePassword,
   paymentReturn,
+  googleLogin,
 };

@@ -15,7 +15,6 @@ import {
 import { userApi } from "@/services/api";
 import { setAuthToken } from "@/services/http";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import NetInfo from "@react-native-community/netinfo";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 interface UserData {
   idToken: string;
@@ -87,24 +86,50 @@ const handleLogin = async () => {
   };
 
   // ✅ Hàm gọi khi nhấn nút Google
-  const handleGoogleLogin = async () => {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      showMessage({ type: "error", message: "Vui lòng kiểm tra kết nối mạng" });
-      return;
+  async function handleGoogleLogin() {
+  try {
+    // đảm bảo Play Services sẵn sàng
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+    // nếu muốn luôn hiện chọn account, bỏ comment 2 dòng dưới:
+    // await GoogleSignin.revokeAccess();
+    // await GoogleSignin.signOut();
+
+    const userInfo: any = await GoogleSignin.signIn();
+
+    // SDK thường trả idToken ngay trên object userInfo
+    let idToken: string | undefined = userInfo?.idToken;
+
+    // fallback nếu idToken chưa có:
+    if (!idToken) {
+      const tokens = await GoogleSignin.getTokens();
+      idToken = tokens?.idToken;
+    }
+    if (!idToken) throw new Error("Không lấy được idToken từ Google");
+
+    // gọi BE: POST /api/User/google-login
+    const res = await userApi.googleLogin(idToken);
+
+    if (!res.success || !res.data) {
+      throw new Error(res.error || res.message || "Google login failed");
     }
 
-    const userData = await onGoogleButtonPress();
-    if (!userData) return;
+    // có { token, user } như login thường
+    const { token, user } = res.data;
 
-    // Sau này bạn có thể POST userData.idToken lên BE tại đây
-    // const { token } = await googleLogin(userData.idToken);
+    // lưu token tuỳ app của bạn (ví dụ)
+    await AsyncStorage.setItem("auth_token", token);
+    await AsyncStorage.setItem("user", JSON.stringify(user));
 
-    // Ví dụ lưu token:
-    // await AsyncStorage.setItem("auth_token", token);
-    // setAuthToken(token);
-    // router.replace("/(tabs)");
-  };
+    // TODO: điều hướng
+    // router.replace("/(tabs)/home");
+    // hoặc show toast
+    // showMessage({ type: "success", text1: "Đăng nhập thành công" });
+  } catch (err: any) {
+    console.log("Google login error:", err?.message || err);
+  
+  }
+}
 
   // 🟢 UI
 return (
