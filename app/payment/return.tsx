@@ -109,7 +109,7 @@ export default function PaymentReturnScreen() {
         <Text style={styles.btnText}>Về trang cá nhân</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={() => router.replace('/payments')}>
+      <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={() => router.replace('/payment/history')}>
         <Text style={[styles.btnText, { color: '#1f2937' }]}>Xem lịch sử thanh toán</Text>
       </TouchableOpacity>
     </View>

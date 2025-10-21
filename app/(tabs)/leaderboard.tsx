@@ -34,12 +34,7 @@ const LeaderboardItem = ({ item, index }: { item: LeaderboardEntry; index: numbe
       <View style={styles.userInfo}>
         <ThemedText style={styles.userName}>{item.userName}</ThemedText>
       </View>
-      <View style={styles.emissionContainer}>
-        <ThemedText style={styles.emissionValue}>
-          {item.totalCO2Emission.toFixed(2)}
-        </ThemedText>
-        <ThemedText style={styles.emissionUnit}> kg CO₂</ThemedText>
-      </View>
+      
     </View>
   );
 };

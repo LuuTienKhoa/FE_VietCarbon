@@ -186,9 +186,8 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.list}>
           {[
-            { icon: 'leaf.fill', label: 'Theo dõi hoạt động carbon', onPress: () => router.push('/activities' as any) },
-            { icon: 'globe.asia.australia.fill', label: 'Bảng điều khiển carbon', onPress: () => router.push('/dashboard' as any) },
-            { icon: 'creditcard.fill', label: 'Bù trừ phát thải', onPress: () => router.push('/offset' as any) },
+            { icon: 'leaf.fill', label: 'Lịch sử thanh toán', onPress: () => router.push('/payment/history' as any) },
+            { icon: 'globe.asia.australia.fill', label: 'Bảng điều khiển carbon', onPress: () => router.push('/(tabs)/track' as any) },
           ].map((item) => (
             <TouchableOpacity key={item.label} style={[styles.item, { backgroundColor: '#f6ffea' }]} onPress={item.onPress}>
               <IconSymbol size={22} name={item.icon as any} color={deepGreen} />
