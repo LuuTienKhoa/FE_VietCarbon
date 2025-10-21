@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "VietCarbon",
-    "slug": "viet-carbon",
+    "slug": "vietcarbon",
     "version": "1.0.0",
     "description": "Ứng dụng đo lường và giảm thiểu CO₂ cá nhân",
     "orientation": "portrait",
@@ -11,29 +11,27 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tienkhoa.vietcarbon",
+      "bundleIdentifier": "com.ktdeads.vietcarbon",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "VietCarbon cần truy cập camera để chụp ảnh hoạt động",
         "NSPhotoLibraryUsageDescription": "VietCarbon cần truy cập thư viện ảnh để chọn ảnh"
       }
     },
-    "android": {    
-      "package": "com.tienkhoa.vietcarbon",
+    "android": {
+      "package": "com.ktdeads.vietcarbon",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/logo.png",
+        "monochromeImage": "./assets/images/logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE",
         "CAMERA",
         "READ_MEDIA_IMAGES"
       ],
@@ -86,7 +84,6 @@
         }
       ],
       "expo-font"
-
     ],
     "experiments": {
       "typedRoutes": true,
@@ -96,10 +93,9 @@
       "router": {},
       "googleClientId": "1068759411281-tq08k6gjrfipi4pjfbv0k01iqpojl49r.apps.googleusercontent.com",
       "eas": {
-        "projectId": "0d6cf527-b195-4162-9567-8d875bb6a18a"
+        "projectId": "17226569-3cbd-44d8-b751-f6be971a1450"
       }
     },
-    "owner": "tienkhoa",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -112,6 +108,7 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "githubUrl": "https://github.com/LuuTienKhoa/FE_VietCarbon"
+    "githubUrl": "https://github.com/LuuTienKhoa/FE_VietCarbon",
+    "owner": "ktdeads"
   }
 }
