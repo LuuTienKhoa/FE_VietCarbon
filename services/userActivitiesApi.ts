@@ -27,33 +27,6 @@ export interface LeaderboardEntry {
   userName: string;
   totalCO2Emission: number;
 }
-
-export interface UserActivities {
-  id: number;
-  userId?: number;
-  
-  // THÊM: Các trường quan trọng từ API Response
-  date?: string; 
-  totalCO2Emission?: number; 
-  plasticUsageId?: number;
-  trafficUsageId?: number;
-  foodUsageId?: number;
-  energyUsageId?: number;
-
-  // Dữ liệu chi tiết lồng nhau (từ response API)
-  plasticUsage?: PlasticUsage; 
-  trafficUsage?: TrafficUsage; 
-  foodUsage?: FoodUsage;     
-  energyUsage?: EnergyUsage;   
-  
-  // Dữ liệu cũ (giữ lại nếu có)
-  action?: string;
-  details?: any;
-  createdAt?: string;
-  co2Emission?: number; // co2Emission ở cấp độ hoạt động đơn lẻ
-  points?: number;
-}
-
 export interface UserActivitiesRequest {
   userId?: number;
   action?: string;
