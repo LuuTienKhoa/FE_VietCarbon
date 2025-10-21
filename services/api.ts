@@ -5,9 +5,9 @@ import { setAuthToken } from './http';
 export type { Challenge, ChallengeRequest } from './challengeApi';
 export type { ChallengeProgress } from './challengeProgressApi';
 export type { EnergyUsage, EnergyUsageRequest } from './energyUsageApi';
-export type { FoodUsage, FoodUsageRequest } from './foodUsageApi';
-export type { PlasticUsage, PlasticUsageRequest } from './plasticUsageApi';
-export type { TrafficUsage, TrafficUsageRequest } from './trafficUsageApi';
+export type { FoodUsage } from './foodUsageApi';
+export type { PlasticUsage } from './plasticUsageApi';
+export type { TrafficUsage } from './trafficUsageApi';
 export type { UserActivities, UserActivitiesRequest } from './userActivitiesApi';
 export type { ApiResponse, AuthPayload, ChangePasswordRequest, LoginRequest, RegisterRequest, UpdateUserRequest, User } from './userApi';
 
@@ -109,8 +109,8 @@ export const apiService = {
     update: userApi.update,
     remove: userApi.remove,
     changePassword: userApi.changePassword,
-    upgrade: userApi.upgrade,
-    updateRole: userApi.updateRole,
+    upgrade: userApi.update,
+    
   },
 
   // Challenge APIs
