@@ -121,10 +121,8 @@ const handleLogin = async () => {
     await AsyncStorage.setItem("auth_token", token);
     await AsyncStorage.setItem("user", JSON.stringify(user));
 
-    // TODO: điều hướng
-    // router.replace("/(tabs)/home");
-    // hoặc show toast
-    // showMessage({ type: "success", text1: "Đăng nhập thành công" });
+    showMessage({ type: "success", message: "Đăng nhập Google thành công!" });
+    router.replace("/(tabs)"); // Hoặc "/(tabs)/home" tuỳ cấu hình của bạn
   } catch (err: any) {
     console.log("Google login error:", err?.message || err);
   
