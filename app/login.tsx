@@ -61,16 +61,17 @@ export default function LoginScreen() {
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        "1068759411281-ee5vs7jc9k6tbc7jrjuq17gu0ngh35en.apps.googleusercontent.com",
+        "177492215827-jqsec57up3u7luccl2hifo9t73b4e9ut.apps.googleusercontent.com",
+        
       offlineAccess: false,
     });
   }, []);
 
   async function handleGoogleLogin() {
-    try {
+    try { 
       setSubmitting(true);
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
+      await GoogleSignin.signOut(); // Đảm bảo đăng nhập lại mỗi lần
       const userInfo: any = await GoogleSignin.signIn();
       let idToken: string | undefined = userInfo?.idToken;
       if (!idToken) {
