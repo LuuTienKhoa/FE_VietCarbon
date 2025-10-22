@@ -170,13 +170,7 @@ export default function ProfileScreen() {
               <ThemedText style={[styles.primaryBtnText, { color: '#fff' }]}>Nâng cấp gói</ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: deepGreen }]}
-              onPress={() => router.push('/profile/edit' as any)}
-            >
-              <IconSymbol size={18} name="pencil" color={deepGreen} />
-              <ThemedText style={[styles.secondaryBtnText, { color: deepGreen }]}>Chỉnh sửa</ThemedText>
-            </TouchableOpacity>
+            
           </View>
         </View>
 
@@ -201,18 +195,7 @@ export default function ProfileScreen() {
         <View style={styles.sectionHeader}>
           <ThemedText style={[styles.sectionTitle, { color: deepGreen }]}>Cài đặt & hỗ trợ</ThemedText>
         </View>
-        <View style={styles.list}>
-          {[
-            { icon: 'gearshape.fill', label: 'Cài đặt', onPress: () => router.push('/settings' as any) },
-            { icon: 'questionmark.circle', label: 'Hỗ trợ', onPress: () => router.push('/support' as any) },
-            { icon: 'envelope.fill', label: 'Gửi phản hồi', onPress: () => router.push('/feedback' as any) },
-          ].map((item) => (
-            <TouchableOpacity key={item.label} style={[styles.item, { backgroundColor: '#f6ffea' }]} onPress={item.onPress}>
-              <IconSymbol size={22} name={item.icon as any} color={deepGreen} />
-              <ThemedText style={[styles.itemLabel, { color: textColor }]}>{item.label}</ThemedText>
-              <IconSymbol size={16} name="chevron.right" color="#6b7280" />
-            </TouchableOpacity>
-          ))}
+        <View style={styles.list}>       
 
           <TouchableOpacity onPress={handleLogout} style={[styles.item, styles.logoutItem]}>
             <IconSymbol size={22} name="rectangle.portrait.and.arrow.right" color="#F44336" />

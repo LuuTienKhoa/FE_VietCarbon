@@ -48,11 +48,9 @@ const rankColors = {
 const PodiumCard = ({
   rank,
   name,
-  value,
 }: {
   rank: 1 | 2 | 3;
   name: string;
-  value: number;
 }) => {
   const medalColor =
     rank === 1 ? rankColors.gold : rank === 2 ? rankColors.silver : rankColors.bronze;
@@ -76,7 +74,7 @@ const PodiumCard = ({
         { transform: [{ scale }] },
       ]}
       accessibilityRole="summary"
-      accessibilityLabel={`Hạng ${rank}: ${name}, ${value.toFixed(2)} kg CO₂`}
+      accessibilityLabel={`Hạng ${rank}: ${name}`}
     >
       <View style={[styles.avatar, { width: radius, height: radius, borderColor: medalColor }]}>
         <ThemedText style={styles.avatarText}>{getInitials(name)}</ThemedText>
@@ -87,12 +85,10 @@ const PodiumCard = ({
           <FontAwesome5 name="medal" size={16} color={medalColor} />
           <ThemedText style={[styles.podiumRankText, { color: medalColor }]}>#{rank}</ThemedText>
         </View>
-        <ThemedText style={styles.podiumName} numberOfLines={1}>
-          {name}
-        </ThemedText>
-        <ThemedText style={styles.podiumValue}>
-          {value.toFixed(2)} <ThemedText style={styles.unit}>kg CO₂</ThemedText>
-        </ThemedText>
+          <ThemedText style={styles.podiumName} numberOfLines={1}>
+            {name}
+          </ThemedText>
+      
       </View>
     </Animated.View>
   );
@@ -135,7 +131,7 @@ const LeaderboardItem = ({
         onPressOut={onPressOut}
         style={[styles.itemContainer, container]}
         accessibilityRole="button"
-        accessibilityLabel={`Hạng ${rank}: ${item.userName}, ${item.totalCO2Emission.toFixed(2)} kg CO₂`}
+        accessibilityLabel={`Hạng ${rank}: ${item.userName}`}
       >
         <View style={styles.rankBadge}>
           {rank <= 3 ? (
@@ -159,10 +155,7 @@ const LeaderboardItem = ({
           </View>
         </View>
 
-        <View style={styles.emissionContainer}>
-          <ThemedText style={styles.emissionValue}>{item.totalCO2Emission.toFixed(2)}</ThemedText>
-          <ThemedText style={styles.emissionUnit}> kg CO₂</ThemedText>
-        </View>
+        {/* emission values intentionally hidden */}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -232,19 +225,19 @@ export default function LeaderboardScreen() {
           {/* #2 */}
           <View style={{ flex: 1, alignItems: 'center' }}>
             {top3[1] ? (
-              <PodiumCard rank={2} name={top3[1].userName} value={top3[1].totalCO2Emission} />
+              <PodiumCard rank={2} name={top3[1].userName} />
             ) : <View style={{ height: 140 }} />}
           </View>
           {/* #1 */}
           <View style={{ flex: 1.3, alignItems: 'center' }}>
             {top3[0] ? (
-              <PodiumCard rank={1} name={top3[0].userName} value={top3[0].totalCO2Emission} />
+              <PodiumCard rank={1} name={top3[0].userName} />
             ) : <View style={{ height: 160 }} />}
           </View>
           {/* #3 */}
           <View style={{ flex: 1, alignItems: 'center' }}>
             {top3[2] ? (
-              <PodiumCard rank={3} name={top3[2].userName} value={top3[2].totalCO2Emission} />
+              <PodiumCard rank={3} name={top3[2].userName} />
             ) : <View style={{ height: 140 }} />}
           </View>
         </View>
