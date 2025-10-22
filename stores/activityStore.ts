@@ -90,17 +90,35 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
   // API Actions
   fetchUserActivities: async (userId: number) => {
+    console.debug('[activityStore] fetchUserActivities called for userId=', userId);
     try {
       set({ isLoading: true, error: null });
       const response = await apiService.getUserActivitiesByUserId(userId);
+      console.debug('[activityStore] api response userActivities length=', Array.isArray(response.data) ? response.data.length : 0, 'success=', response.success);
       
       if (response.success && response.data) {
         set({ userActivities: response.data, isLoading: false });
+        // Lưu userActivityId gần nhất để các phần khác (vd. recommendation) có thể dùng
+        try {
+          const latest = response.data[0];
+          if (latest && typeof latest.id !== 'undefined') {
+            const idStr = String(latest.id);
+            console.debug('[activityStore] attempting to persist userActivityId ->', idStr);
+            await AsyncStorage.setItem('userActivityId', idStr);
+            const verify = await AsyncStorage.getItem('userActivityId');
+            console.debug('[activityStore] persisted userActivityId verify ->', verify);
+          } else {
+            console.debug('[activityStore] no latest.id to save', latest);
+          }
+        } catch (e) {
+          console.error('[activityStore] failed to persist userActivityId', e);
+        }
       } else {
         set({ error: response.error || 'Failed to fetch user activities', isLoading: false });
       }
     } catch (error) {
       set({ error: 'Failed to fetch user activities', isLoading: false });
+      console.error('[activityStore] fetchUserActivities error', error);
     }
   },
 
@@ -129,6 +147,16 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
           userActivities: [response.data!, ...state.userActivities],
           isLoading: false
         }));
+        // Lưu id của activity vừa tạo để dùng cho recommendation hoặc các feature khác
+        try {
+          if (typeof response.data.id !== 'undefined') {
+            const idStr = String(response.data.id);
+            await AsyncStorage.setItem('userActivityId', idStr);
+            console.debug('[activityStore] saved userActivityId (created) ->', idStr);
+          }
+        } catch (e) {
+          console.error('[activityStore] failed to persist created userActivityId', e);
+        }
       } else {
         set({ error: response.error || 'Failed to create activity', isLoading: false });
       }
@@ -140,8 +168,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   deleteUserActivity: async (id: number) => {
     try {
       set({ isLoading: true, error: null });
-      // const response = await apiService.deleteUserActivity(id);
-      const response = await apiService.createUserActivity(activity);
+      // gọi đúng API delete
+      const response = await apiService.deleteUserActivity(id);
       
       if (response.success) {
         set((state) => ({

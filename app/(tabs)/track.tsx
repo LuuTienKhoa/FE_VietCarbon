@@ -6,6 +6,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ScreenWrapper } from "@/components/wrapper";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -179,6 +180,26 @@ export default function TrackScreen() {
         const today = new Date();
         const todayData = act.data.find((x) => x.date && isSameDay(x.date, today));
         setTodayActivity(todayData ?? null);
+
+        // <-- NEW: persist userActivityId của activity có "date" gần nhất với hôm nay
+        try {
+          const nearest = act.data.reduce((best: UserActivities | null, cur) => {
+            if (!cur?.date) return best;
+            const curDiff = Math.abs(new Date(cur.date).getTime() - today.getTime());
+            const bestDiff = best && best.date ? Math.abs(new Date(best.date).getTime() - today.getTime()) : Infinity;
+            return curDiff < bestDiff ? cur : best;
+          }, null);
+
+          if (nearest && typeof nearest.id !== "undefined" && nearest.id !== null) {
+            const idStr = String(nearest.id);
+            await AsyncStorage.setItem("userActivityId", idStr);
+            console.debug("[track] saved userActivityId (nearest) ->", idStr, "date ->", nearest.date);
+          } else {
+            console.debug("[track] no nearest activity to save", nearest);
+          }
+        } catch (e) {
+          console.warn("[track] failed to save userActivityId", e);
+        }
       }
     } catch (e: any) {
       Alert.alert("Lỗi", e?.message || "Không thể tải dữ liệu.");

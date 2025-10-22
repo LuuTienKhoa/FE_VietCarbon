@@ -6,6 +6,7 @@ import { ScreenWrapper } from '@/components/wrapper';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService, type Challenge } from '@/services/api';
 import { recommendApi } from '@/services/recommendApi';
+import { useActivityStore } from '@/stores/activityStore';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -161,19 +162,36 @@ export default function ChallengesScreen() {
   }, []);
 
   const fetchRecommendation = useCallback(async () => {
-    setRecLoading(true);
-    try {
-      const stored = await AsyncStorage.getItem('userActivityId');
-      const activityId = stored || '4';
-      const res = await recommendApi.getByUserActivityId(activityId);
-      if (res.success && res.data) {
-        setRecText(res.data.recommendation);
-        await AsyncStorage.setItem(REC_CACHE_KEY, res.data.recommendation);
-      }
-    } finally {
-      setRecLoading(false);
+  setRecLoading(true);
+  try {
+    const stored = await AsyncStorage.getItem('userActivityId');
+    console.debug('[challenges] AsyncStorage userActivityId raw ->', stored);
+
+    let activityId = stored !== null ? Number(stored) : undefined;
+
+    // Fallback: lấy từ zustand store nếu AsyncStorage chưa có
+    if (activityId === undefined || Number.isNaN(activityId)) {
+      const storeId = useActivityStore.getState().userActivities?.[0]?.id;
+      console.debug('[challenges] fallback store userActivities[0]?.id ->', storeId);
+      if (typeof storeId !== 'undefined') activityId = Number(storeId);
     }
-  }, []);
+
+    if (activityId === undefined || Number.isNaN(activityId)) {
+      console.warn('Không có userActivityId hợp lệ');
+      const cached = await AsyncStorage.getItem(REC_CACHE_KEY);
+      if (cached) setRecText(cached);
+      return;
+    }
+
+    const res = await recommendApi.getByUserActivityId(activityId);
+    if (res.success && res.data) {
+      setRecText(res.data.recommendation);
+      await AsyncStorage.setItem(REC_CACHE_KEY, res.data.recommendation);
+    }
+  } finally {
+    setRecLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     fetchChallenges();
