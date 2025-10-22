@@ -31,31 +31,48 @@ export default function LoginScreen() {
   const { showMessage } = useFlashMessage();
   const router = useRouter();
 
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem("auth_token");
+      if (token) {
+        router.replace("/"); // Redirect to main app if token exists
+      }
+    };
+    checkToken();
+  }, []);
+
   // ======= EMAIL/PASSWORD LOGIN =======
   const handleLogin = async () => {
-    if (!email || !password) {
-      showMessage({ type: "warning", message: "Vui lòng nhập đầy đủ thông tin" });
-      return;
+  if (!email || !password) {
+    showMessage({ type: "warning", message: "Vui lòng nhập đầy đủ thông tin" });
+    return;
+  }
+  try {
+    setSubmitting(true);
+    // 🧹 Xoá token cũ trước khi login
+    await AsyncStorage.removeItem("auth_token");
+    setAuthToken(null);
+    const res = await userApi.login({ email, password });
+    if (res.success && res.data) {
+      const { token, user } = res.data; // ⚠️ thêm user ở đây
+      await AsyncStorage.setItem("auth_token", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user)); // ✅ lưu user
+      
+      setAuthToken(token);
+
+      showMessage({ type: "success", message: "Đăng nhập thành công!" });
+      router.replace("/"); // ✅ vào tabs qua /(tabs)/index
+    } else {
+      const msg = res.error || "Đăng nhập thất bại";
+      showMessage({ type: "error", message: msg });
     }
-    try {
-      setSubmitting(true);
-      const res = await userApi.login({ email, password });
-      if (res.success && res.data) {
-        const { token } = res.data;
-        await AsyncStorage.setItem("auth_token", token);
-        setAuthToken(token);
-        showMessage({ type: "success", message: "Đăng nhập thành công!" });
-        router.replace("/"); // ✅ vào tabs qua /(tabs)/index
-      } else {
-        const msg = res.error || "Đăng nhập thất bại";
-        showMessage({ type: "error", message: msg });
-      }
-    } catch {
-      showMessage({ type: "error", message: "Có lỗi xảy ra khi đăng nhập" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch {
+    showMessage({ type: "error", message: "Có lỗi xảy ra khi đăng nhập" });
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   // ======= GOOGLE LOGIN =======
   useEffect(() => {
@@ -70,6 +87,7 @@ export default function LoginScreen() {
   async function handleGoogleLogin() {
     try { 
       setSubmitting(true);
+      await AsyncStorage.removeItem("auth_token");
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       await GoogleSignin.signOut(); // Đảm bảo đăng nhập lại mỗi lần
       const userInfo: any = await GoogleSignin.signIn();
@@ -168,14 +186,6 @@ export default function LoginScreen() {
               >
                 <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={20} color="#374151" />
               </Pressable>
-            </View>
-
-            {/* Hành động phụ */}
-            <View style={styles.row}>
-              <Text style={styles.helper}>Tối ưu hoá cho người mới bắt đầu</Text>
-              <TouchableOpacity>
-                <Text style={styles.link}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
             </View>
 
             {/* Nút Login */}
