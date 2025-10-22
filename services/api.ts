@@ -78,24 +78,37 @@ import { notifyApi } from './notifyApi';
 import { plasticUsageApi } from './plasticUsageApi';
 import { recommendApi } from './recommendApi';
 import { trafficUsageApi } from './trafficUsageApi';
-import { transactionApi } from './transactionApi';
+import { createPayment, getStatus, transactionApi } from './transactionApi';
 import { userActivitiesApi } from './userActivitiesApi';
-import { ApiResponse, userApi } from './userApi';
+import { userApi } from './userApi';
 
 // Ensure all APIs have a 'list' property defined
-const ensureListProperty = (api: { list?: () => Promise<ApiResponse<any[]>> }) => {
+const ensureListProperty = (api: any) => {
   if (!api.list) {
-    api.list = async () => ({ success: true, data: [] });
+    api.list = async (..._args: any[]) => ({ success: true, data: [] });
   }
 };
 
 // Apply the fix to all APIs
-[challengeApi, challengeProgressApi, energyUsageApi, foodUsageApi, notifyApi, plasticUsageApi, recommendApi, trafficUsageApi, transactionApi, userActivitiesApi, userApi].forEach(ensureListProperty);
+[
+  challengeApi,
+  challengeProgressApi,
+  energyUsageApi,
+  foodUsageApi,
+  notifyApi,
+  plasticUsageApi,
+  recommendApi,
+  trafficUsageApi,
+  transactionApi,
+  userActivitiesApi,
+  userApi,
+].forEach(ensureListProperty);
 
-// Unified API Service
+// ✅ Unified API Service
 export const apiService = {
   // Token management
   setToken: (token: string | null) => {
+    // Gọi setAuthToken để cập nhật axios interceptor
     setAuthToken(token);
   },
 
@@ -110,7 +123,6 @@ export const apiService = {
     remove: userApi.remove,
     changePassword: userApi.changePassword,
     upgrade: userApi.update,
-    
   },
 
   // Challenge APIs
@@ -196,15 +208,17 @@ export const apiService = {
     remove: recommendApi.remove,
   },
 
-  // Transaction APIs
+  // ✅ Transaction APIs (mở rộng thêm thanh toán)
   transaction: {
     list: transactionApi.list,
     getById: transactionApi.getById,
     create: transactionApi.create,
     update: transactionApi.update,
     remove: transactionApi.remove,
+    // ✅ Bổ sung thêm các hàm tiện ích từ transactionApi
+    createPayment,
+    getStatus,
   },
-  
 
   // Convenience methods for common operations
   createUserActivity: async (activity: any) => {
@@ -252,12 +266,18 @@ export const apiService = {
   },
 };
 
-
 // Export individual services for backward compatibility
 export {
   challengeApi,
   challengeProgressApi,
   energyUsageApi,
-  foodUsageApi, notifyApi, plasticUsageApi, recommendApi, trafficUsageApi, transactionApi, userActivitiesApi, userApi
+  foodUsageApi,
+  notifyApi,
+  plasticUsageApi,
+  recommendApi,
+  trafficUsageApi,
+  transactionApi,
+  userActivitiesApi,
+  userApi
 };
 

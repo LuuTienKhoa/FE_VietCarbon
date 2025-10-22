@@ -78,7 +78,7 @@ export default function PaymentReturnScreen() {
         await me();
 
         setOk(successBool);
-        setMessage(successBool ? 'Thanh toán thành công!' : 'Thanh toán thất bại hoặc bị hủy.');
+        // setMessage(successBool ? 'Thanh toán thành công!' : 'Thanh toán thất bại hoặc bị hủy.');
       } catch (err: any) {
         console.error('payment-return error', err?.response?.data ?? err?.message);
         setOk(false);
@@ -100,10 +100,10 @@ export default function PaymentReturnScreen() {
 
   return (
     <View style={styles.center}>
-      <Text style={[styles.title, { color: ok ? '#065f46' : '#7f1d1d' }]}>
+      {/* <Text style={[styles.title, { color: ok ? '#065f46' : '#7f1d1d' }]}>
         {ok ? '✔ Thanh toán thành công' : '✖ Thanh toán không thành công'}
-      </Text>
-      <Text style={styles.msg}>{payload.desc || message}</Text>
+      </Text> */}
+      {/* <Text style={styles.msg}>{payload.desc || message}</Text> */}
 
       <TouchableOpacity style={styles.btn} onPress={() => router.replace('/(tabs)/profile')}>
         <Text style={styles.btnText}>Về trang cá nhân</Text>

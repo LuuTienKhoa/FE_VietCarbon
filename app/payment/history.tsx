@@ -1,321 +1,223 @@
-import { TransactionStatus } from '@/services/transactionApi';
-import { useUserStore } from '@/stores/userStore';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Transaction, transactionApi, TransactionStatus } from "@/services/transactionApi";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-export default function PaymentHistoryScreen() {
-  const router = useRouter();
-  const user = useUserStore((state) => state.user);
-  const [loading, setLoading] = useState(false);
-  const [transactions, setTransactions] = useState<any[]>([
-    {
-      id: 1,
-      amount: 150000,
-      reason: 'Mua gói VIP 1 tháng',
-      status: TransactionStatus.Completed,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      amount: 50000,
-      reason: 'Nạp xu',
-      status: TransactionStatus.Pending,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      amount: 200000,
-      reason: 'Mua gói VIP 3 tháng',
-      status: TransactionStatus.Failed,
-      createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      id: 4,
-      amount: 100000,
-      reason: 'Gia hạn VIP',
-      status: TransactionStatus.Cancelled,
-      createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-  ]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Dữ liệu mẫu để test UI/UX
-  const mockData = [
-    {
-      id: 1,
-      amount: 150000,
-      reason: 'Mua gói VIP 1 tháng',
-      status: TransactionStatus.Completed,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      amount: 50000,
-      reason: 'Nạp xu',
-      status: TransactionStatus.Pending,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      amount: 200000,
-      reason: 'Mua gói VIP 3 tháng',
-      status: TransactionStatus.Failed,
-      createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      id: 4,
-      amount: 100000,
-      reason: 'Gia hạn VIP',
-      status: TransactionStatus.Cancelled,
-      createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-  ];
-
-  // Set mock data immediately
-  useEffect(() => {
-    setTransactions(mockData);
-  }, []);
-
-  useEffect(() => {
-    if (!user?.id) {
-      return;
-    }
-
-    // Dữ liệu mẫu để test UI/UX
-    const mockData = [
-      {
-        id: 1,
-        amount: 150000,
-        reason: 'Mua gói VIP 1 tháng',
-        status: TransactionStatus.Completed,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        amount: 50000,
-        reason: 'Nạp xu',
-        status: TransactionStatus.Pending,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: 3,
-        amount: 200000,
-        reason: 'Mua gói VIP 3 tháng',
-        status: TransactionStatus.Failed,
-        createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-      },
-      {
-        id: 4,
-        amount: 100000,
-        reason: 'Gia hạn VIP',
-        status: TransactionStatus.Cancelled,
-        createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-      },
-    ];
-
-    // API call disabled for testing
-  }, [user?.id]);
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-        <Text style={styles.msg}>Đang tải lịch sử thanh toán...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.title}>Lỗi</Text>
-        <Text style={styles.msg}>{error}</Text>
-        <TouchableOpacity style={styles.btn} onPress={() => router.replace('/(tabs)/profile')}>
-          <Text style={styles.btnText}>Quay lại</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const getStatusText = (status: TransactionStatus) => {
-    switch (status) {
-      case TransactionStatus.Completed:
-        return 'Thành công';
-      case TransactionStatus.Pending:
-        return 'Đang xử lý';
-      case TransactionStatus.Failed:
-        return 'Thất bại';
-      case TransactionStatus.Cancelled:
-        return 'Đã hủy';
-      default:
-        return 'Không xác định';
-    }
+const StatusPill = ({ status }: { status: TransactionStatus }) => {
+  const map = {
+    [TransactionStatus.Completed]: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7", icon: "checkmark-circle" },
+    [TransactionStatus.Pending]: { label: "Đang xử lý", color: "#facc15", bg: "#fef9c3", icon: "time" },
+    [TransactionStatus.Failed]: { label: "Thất bại", color: "#ef4444", bg: "#fee2e2", icon: "close-circle" },
+    [TransactionStatus.Cancelled]: { label: "Đã hủy", color: "#6b7280", bg: "#f3f4f6", icon: "ban" },
   };
-
-  const getStatusColor = (status: TransactionStatus) => {
-    switch (status) {
-      case TransactionStatus.Completed:
-        return '#059669'; // emerald-600
-      case TransactionStatus.Pending:
-        return '#ca8a04'; // yellow-600
-      case TransactionStatus.Failed:
-        return '#dc2626'; // red-600
-      case TransactionStatus.Cancelled:
-        return '#4b5563'; // gray-600
-      default:
-        return '#6b7280';
-    }
-  };
+  const item = map[status] || { label: "Không xác định", color: "#6b7280", bg: "#f3f4f6", icon: "help" };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f0fdf4' }}>
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => String(item.id ?? Math.random())}
-        contentContainerStyle={{ padding: 16 }}
-        ListHeaderComponent={() => (
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Lịch sử giao dịch</Text>
-            <Text style={styles.headerSubtitle}>Theo dõi các hoạt động thanh toán của bạn</Text>
-          </View>
-        )}
-        ListEmptyComponent={() => (
-          <View style={styles.center}>
-            <Text style={styles.msg}>Chưa có giao dịch nào.</Text>
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={styles.iconContainer}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-            </View>
-            <View style={styles.contentContainer}>
-              <View style={styles.topRow}>
-                <Text style={styles.amount}>{(item.amount ?? 0).toLocaleString()} VND</Text>
-                <Text style={[
-                  styles.status,
-                  { color: getStatusColor(item.status) }
-                ]}>
-                  {getStatusText(item.status)}
-                </Text>
-              </View>
-              <Text style={styles.reason}>{item.reason}</Text>
-              <Text style={styles.date}>
-                {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : ''}
-              </Text>
-            </View>
-          </View>
-        )}
-      />
+    <View style={[styles.statusPill, { backgroundColor: item.bg }]}>
+      <Ionicons name={item.icon as any} size={16} color={item.color} />
+      <Text style={[styles.statusText, { color: item.color, marginLeft: 6 }]}>{item.label}</Text>
     </View>
   );
-}
+};
+
+const TransactionCard = ({ item }: { item: Transaction }) => {
+  const iconColor = "#15803d";
+  return (
+    <TouchableOpacity activeOpacity={0.9} style={styles.card}>
+      <View style={styles.cardLeft}>
+        <LinearGradient colors={["#bbf7d0", "#86efac"]} style={styles.iconCircle}>
+          <Ionicons name="cash-outline" size={22} color={iconColor} />
+        </LinearGradient>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.amount}>{item.amount.toLocaleString()}₫</Text>
+        <Text style={styles.reason}>{item.reason || "Không có lý do"}</Text>
+        <Text style={styles.date}>{new Date(item.createdAt ?? "").toLocaleString("vi-VN")}</Text>
+      </View>
+
+      <View style={styles.cardRight}>
+        <StatusPill status={item.status} />
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const HistoryScreen = () => {
+  const navigation = useNavigation();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getUserId = async () => {
+    try {
+      const userJson = await AsyncStorage.getItem("user");
+      if (!userJson) return null;
+      const user = JSON.parse(userJson);
+      return user?.id ?? user?.userId ?? null;
+    } catch (e) {
+      console.error("❌ Lỗi đọc user:", e);
+      return null;
+    }
+  };
+
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userId = await getUserId();
+      if (!userId) throw new Error("Không tìm thấy thông tin người dùng");
+
+      const res = await transactionApi.list(userId);
+      if (!res.success) throw new Error(res.message || "Không thể tải giao dịch");
+
+      setTransactions(res.data ?? []);
+    } catch (err: any) {
+      console.error("⚠️ Lỗi tải giao dịch:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchTransactions();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const totalAmount = useMemo(() => transactions.reduce((s, t) => s + (t.amount ?? 0), 0), [transactions]);
+
+  if (loading)
+    return (
+      <LinearGradient colors={["#d9f99d", "#bbf7d0"]} style={styles.centered}>
+        <ActivityIndicator size="large" color="#16a34a" />
+        <Text style={styles.loadingText}>Đang tải lịch sử giao dịch...</Text>
+      </LinearGradient>
+    );
+
+  if (error)
+    return (
+      <LinearGradient colors={["#d9f99d", "#bbf7d0"]} style={styles.centered}>
+        <Text style={styles.errorText}>⚠️ {error}</Text>
+        <TouchableOpacity onPress={fetchTransactions} style={styles.retryButton}>
+          <Text style={styles.retryText}>Thử lại</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    );
+
+  return (
+    <LinearGradient colors={["#e0fce0", "#b4f2a7"]} style={{ flex: 1 }}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>💳 Lịch sử giao dịch</Text>
+      </View>
+
+      {/* Content */}
+      {transactions.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="file-tray-outline" size={52} color="#9ca3af" style={{ marginBottom: 10 }} />
+          <Text style={styles.emptyTitle}>Chưa có giao dịch</Text>
+          <Text style={styles.emptyText}>
+            Bạn chưa thực hiện giao dịch nào. Hãy thử mua gói VIP để ủng hộ cộng đồng 🌱
+          </Text>        
+        </View>
+      ) : (
+        <FlatList
+          data={transactions}
+          keyExtractor={(item) => item.id.toString()}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#16a34a"]} />}
+          renderItem={({ item }) => <TransactionCard item={item} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        />
+      )}
+    </LinearGradient>
+  );
+};
 
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 24, 
-    backgroundColor: '#f0fdf4' 
-  },
-  title: { 
-    fontSize: 20, 
-    fontWeight: '900', 
-    marginBottom: 8,
-    color: '#166534' // green-800
-  },
-  msg: { 
-    opacity: 0.9, 
-    textAlign: 'center',
-    color: '#166534' 
-  },
-  btn: { 
-    marginTop: 16, 
-    paddingVertical: 12, 
-    paddingHorizontal: 18, 
-    backgroundColor: '#22c55e', // green-500
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  btnText: { 
-    color: '#fff', 
-    fontWeight: '800' 
-  },
-  header: {
-    marginBottom: 24,
-    paddingHorizontal: 4,
+  headerContainer: {
+    alignItems: "center",
+    paddingTop: 30,
+    paddingBottom: 60,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#166534',
-    marginBottom: 8,
+    fontSize: 35,
+    fontWeight: "800",
+    color: "#065f46",
+    letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#166534',
-    opacity: 0.8,
-  },
-  row: { 
-    flexDirection: 'row',
-    padding: 16, 
-    borderRadius: 16, 
-    backgroundColor: '#fff',
-    marginBottom: 12,
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
     shadowOpacity: 0.1,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  iconContainer: {
-    marginRight: 12,
-    justifyContent: 'center',
+  cardLeft: { marginRight: 12 },
+  iconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  cardBody: { flex: 1 },
+  amount: { fontSize: 18, fontWeight: "700", color: "#15803d" },
+  reason: { fontSize: 14, color: "#374151", marginTop: 3 },
+  date: { fontSize: 12, color: "#6b7280", marginTop: 4 },
+  cardRight: { marginLeft: 8 },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  contentContainer: {
+  statusText: { fontSize: 13, fontWeight: "600" },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, color: "#064e3b", fontSize: 16, fontWeight: "500" },
+  errorText: { color: "#dc2626", marginBottom: 10, fontSize: 16, fontWeight: "600" },
+  retryButton: {
+    backgroundColor: "#16a34a",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+  retryText: { color: "#fff", fontWeight: "600" },
+  emptyCard: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 30,
+    paddingBottom: 60,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  amount: { 
-    fontSize: 18, 
-    fontWeight: '800',
-    color: '#166534',
-  },
-  reason: { 
-    fontSize: 14,
-    color: '#166534',
-    opacity: 0.8,
-    marginBottom: 4,
-  },
-  status: { 
-    fontSize: 13, 
-    fontWeight: '600',
-  },
-  date: { 
-    fontSize: 12, 
-    opacity: 0.6,
-    color: '#166534',
-  },
+  emptyTitle: { fontSize: 22, fontWeight: "700", color: "#374151", marginBottom: 6 },
+  emptyText: { fontSize: 14, textAlign: "center", color: "#6b7280", marginBottom: 16, lineHeight: 20 },
+  buyButton: { backgroundColor: "#16a34a", paddingHorizontal: 28, paddingVertical: 12, borderRadius: 25 },
+  buyText: { color: "#fff", fontWeight: "600", fontSize: 15 },
 });
+
+export default HistoryScreen;
