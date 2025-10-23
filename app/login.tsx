@@ -1,5 +1,6 @@
 import { useFlashMessage } from "@/components/flash-message-provider";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import NetInfo from '@react-native-community/netinfo';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -20,58 +21,76 @@ import { setAuthToken } from "@/services/http";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
-interface UserData { idToken: string; }
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   const { showMessage } = useFlashMessage();
   const router = useRouter();
 
   useEffect(() => {
     const checkToken = async () => {
-      const token = await AsyncStorage.getItem("auth_token");
-      if (token) {
-        router.replace("/"); // Redirect to main app if token exists
+      try {
+        const token = await AsyncStorage.getItem("auth_token");
+        if (token) {
+          router.replace("/"); // Redirect to main app if token exists
+        }
+      } catch (error) {
+        console.error('Failed to check token:', error);
       }
     };
     checkToken();
+  }, [router]);
+
+  // Check network status
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected ?? false);
+    });
+    return unsubscribe;
   }, []);
 
   // ======= EMAIL/PASSWORD LOGIN =======
   const handleLogin = async () => {
-  if (!email || !password) {
-    showMessage({ type: "warning", message: "Vui lòng nhập đầy đủ thông tin" });
-    return;
-  }
-  try {
-    setSubmitting(true);
-    // 🧹 Xoá token cũ trước khi login
-    await AsyncStorage.removeItem("auth_token");
-    setAuthToken(null);
-    const res = await userApi.login({ email, password });
-    if (res.success && res.data) {
-      const { token, user } = res.data; // ⚠️ thêm user ở đây
-      await AsyncStorage.setItem("auth_token", token);
-      await AsyncStorage.setItem("user", JSON.stringify(user)); // ✅ lưu user
-      
-      setAuthToken(token);
-
-      showMessage({ type: "success", message: "Đăng nhập thành công!" });
-      router.replace("/"); // ✅ vào tabs qua /(tabs)/index
-    } else {
-      const msg = res.error || "Đăng nhập thất bại";
-      showMessage({ type: "error", message: msg });
+    if (!email || !password) {
+      showMessage({ type: "warning", message: "Vui lòng nhập đầy đủ thông tin" });
+      return;
     }
-  } catch {
-    showMessage({ type: "error", message: "Có lỗi xảy ra khi đăng nhập" });
-  } finally {
-    setSubmitting(false);
-  }
-};
+
+    if (!isOnline) {
+      showMessage({ type: "error", message: "Cần kết nối internet để đăng nhập" });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      // 🧹 Xoá token cũ trước khi login
+      await AsyncStorage.removeItem("auth_token");
+      setAuthToken(null);
+      const res = await userApi.login({ email, password });
+      if (res.success && res.data) {
+        const { token, user } = res.data; // ⚠️ thêm user ở đây
+        await AsyncStorage.setItem("auth_token", token);
+        await AsyncStorage.setItem("user", JSON.stringify(user)); 
+        
+        setAuthToken(token);
+
+        showMessage({ type: "success", message: "Đăng nhập thành công!" });
+        router.replace("/"); 
+      } else {
+        const msg = res.error || "Đăng nhập thất bại";
+        showMessage({ type: "error", message: msg });
+      }
+    } catch {
+      showMessage({ type: "error", message: "Có lỗi xảy ra khi đăng nhập" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
 
   // ======= GOOGLE LOGIN =======
@@ -188,17 +207,29 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
+            {/* Offline indicator */}
+            {!isOnline && (
+              <View style={styles.offlineWarning}>
+                <Ionicons name="wifi" size={16} color="#F59E0B" />
+                <Text style={styles.offlineText}>
+                  Cần kết nối internet để đăng nhập
+                </Text>
+              </View>
+            )}
+
             {/* Nút Login */}
             <TouchableOpacity
-              style={[styles.primaryBtn, submitting && styles.disabled]}
+              style={[styles.primaryBtn, (submitting || !isOnline) && styles.disabled]}
               onPress={handleLogin}
               activeOpacity={0.85}
-              disabled={submitting}
+              disabled={submitting || !isOnline}
               accessibilityRole="button"
               accessibilityLabel="Đăng nhập"
             >
               <Ionicons name="leaf-outline" size={18} color="#0B3520" />
-              <Text style={styles.primaryText}>{submitting ? "Đang xử lý..." : "Đăng nhập"}</Text>
+              <Text style={styles.primaryText}>
+                {submitting ? "Đang xử lý..." : !isOnline ? "Cần internet" : "Đăng nhập"}
+              </Text>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -380,4 +411,21 @@ const styles = StyleSheet.create({
     borderColor: "rgba(11,53,32,0.12)",
   },
   badgeText: { fontSize: 12, fontWeight: "700", color: "#0B3520" },
+  offlineWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  offlineText: {
+    fontSize: 12,
+    color: '#92400E',
+    marginLeft: 6,
+    fontWeight: '600',
+  },
 });

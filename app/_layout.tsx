@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { FlashMessageProvider } from '@/components/flash-message-provider';
+import { NetworkStatus } from '@/components/network-status';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useUserStore } from '@/stores/userStore';
 import { useEffect } from 'react';
@@ -26,6 +27,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <FlashMessageProvider>
+          <NetworkStatus />
           <Stack>
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="register" options={{ headerShown: false }} />

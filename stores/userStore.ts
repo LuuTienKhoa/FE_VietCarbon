@@ -8,6 +8,7 @@ interface UserState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isOffline: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
@@ -17,6 +18,8 @@ interface UserState {
   login: (user: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
+  setOfflineMode: (isOffline: boolean) => void;
+  loadOfflineData: () => Promise<void>;
 }
 
 const STORAGE_KEYS = {
@@ -30,6 +33,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  isOffline: false,
 
   setUser: (user) => {
     set({ user, isAuthenticated: !!user });
@@ -130,6 +134,37 @@ export const useUserStore = create<UserState>((set, get) => ({
     } catch (error) {
       set({ 
         error: 'Failed to load stored authentication', 
+        isLoading: false 
+      });
+    }
+  },
+
+  // Add offline mode support
+  setOfflineMode: (isOffline: boolean) => {
+    set({ isOffline });
+  },
+
+  loadOfflineData: async () => {
+    try {
+      set({ isLoading: true });
+      
+      // Try to load from offline cache first
+      const { offlineManager } = await import('@/utils/offline-manager');
+      const cachedUser = await offlineManager.getCachedUser();
+      
+      if (cachedUser) {
+        set({ 
+          user: cachedUser, 
+          isAuthenticated: true,
+          isOffline: true,
+          isLoading: false 
+        });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (error) {
+      set({ 
+        error: 'Failed to load offline data', 
         isLoading: false 
       });
     }

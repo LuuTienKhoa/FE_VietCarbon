@@ -6,6 +6,8 @@ import {
 } from "@/services/userActivitiesApi";
 import { userApi, type User } from "@/services/userApi";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -377,6 +379,15 @@ export default function TrangChu() {
   const [hoatDong, setHoatDong] = useState<UserActivities[]>([]);
   const [dangTai, setDangTai] = useState(true);
   const [loi, setLoi] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Check network status
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected ?? false);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -384,6 +395,20 @@ export default function TrangChu() {
       try {
         setDangTai(true);
         setLoi(null);
+
+        // Check if we have cached data first
+        const cachedUser = await AsyncStorage.getItem('user');
+        const cachedActivities = await AsyncStorage.getItem('cached_activities');
+        
+        if (cachedUser && !isOnline) {
+          // Use cached data when offline
+          setNguoiDung(JSON.parse(cachedUser));
+          if (cachedActivities) {
+            setHoatDong(JSON.parse(cachedActivities));
+          }
+          setDangTai(false);
+          return;
+        }
 
         // ====== GIỮ NGUYÊN LOGIC GỌI API ======
         const me = await userApi.me();
@@ -395,9 +420,27 @@ export default function TrangChu() {
         if (alive && chs.success && chs.data) setThachThuc(chs.data);
 
         const acts = await userActivitiesApi.getByUserId(me.data.id);
-        if (alive && acts.success && acts.data) setHoatDong(acts.data);
+        if (alive && acts.success && acts.data) {
+          setHoatDong(acts.data);
+          // Cache activities for offline use
+          await AsyncStorage.setItem('cached_activities', JSON.stringify(acts.data));
+        }
       } catch (e: any) {
-        if (alive) setLoi(e?.message || "Không thể tải dữ liệu");
+        if (alive) {
+          // Try to load cached data if API fails
+          const cachedUser = await AsyncStorage.getItem('user');
+          const cachedActivities = await AsyncStorage.getItem('cached_activities');
+          
+          if (cachedUser) {
+            setNguoiDung(JSON.parse(cachedUser));
+            if (cachedActivities) {
+              setHoatDong(JSON.parse(cachedActivities));
+            }
+            setLoi("Đang sử dụng dữ liệu offline");
+          } else {
+            setLoi(e?.message || "Không thể tải dữ liệu");
+          }
+        }
       } finally {
         if (alive) setDangTai(false);
       }
@@ -405,7 +448,7 @@ export default function TrangChu() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isOnline]);
 
   const homNay = useMemo(() => new Date(), []);
   const homQua = useMemo(() => {
@@ -477,11 +520,33 @@ export default function TrangChu() {
               color: tokens.color.muted,
             }}
           >
-            {isEmptyToday
+            {!isOnline 
+              ? "Chế độ offline - Dữ liệu đã lưu"
+              : isEmptyToday
               ? "Chưa có dữ liệu cho hôm nay."
               : "Tiếp tục duy trì thói quen tốt nhé!"}
           </Text>
         </View>
+        {!isOnline && (
+          <View style={{
+            backgroundColor: '#FEF3C7',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+            <Ionicons name="wifi" size={12} color="#92400E" />
+            <Text style={{
+              fontSize: 10,
+              color: '#92400E',
+              marginLeft: 4,
+              fontWeight: '600',
+            }}>
+              Offline
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* ===== Loading & Error ===== */}
