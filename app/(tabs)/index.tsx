@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -204,7 +204,7 @@ const HeroKPI = ({
 
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={onPrimaryPress}
+      onPress={() => router.push("/measure")}
       style={{
         marginTop: tokens.space.lg,
         height: 48,
