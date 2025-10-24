@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function StartScreen() {
@@ -21,7 +20,7 @@ export default function StartScreen() {
 
       {/* Card */}
       <View style={styles.card}>
-        <Text style={styles.getStarted}>Let's get started</Text>
+  <Text style={styles.getStarted}>{"Let's get started"}</Text>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => router.push('/login')}

@@ -1,5 +1,5 @@
 import { CarbonActivity } from '@/types/carbon';
-import React, { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { FlatList, ListRenderItem, ViewToken } from 'react-native';
 import { ActivityItem } from './activity-item';
 
@@ -13,6 +13,7 @@ interface OptimizedActivityListProps {
 
 // Memoized activity item component
 const MemoizedActivityItem = memo(ActivityItem);
+MemoizedActivityItem.displayName = 'MemoizedActivityItem';
 
 // Key extractor for FlatList
 const keyExtractor = (item: CarbonActivity) => item.id;
@@ -33,6 +34,7 @@ const EmptyComponent = memo(() => (
     tintColor="#ccc"
   />
 ));
+  EmptyComponent.displayName = 'OptimizedActivityList.EmptyComponent';
 
 export const OptimizedActivityList = memo<OptimizedActivityListProps>(({
   activities,

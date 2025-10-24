@@ -3,6 +3,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ComponentProps } from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 
+import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 interface ProgressBarProps extends ComponentProps<typeof ThemedView> {
