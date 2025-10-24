@@ -2,8 +2,9 @@
 import { ThemedText } from '@/components/themed-text';
 import { ScreenWrapper } from '@/components/wrapper';
 import { apiService, FoodCategory, PlasticCategory, TrafficCategory } from '@/services/api';
+import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -60,7 +61,15 @@ const PLASTIC_OPTIONS = [
 
 export default function DailyLogScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Hide the header title (file name 'measure') while keeping the back button
+  useLayoutEffect(() => {
+    // setOptions exists on the navigation object provided by react-navigation
+    // we set an empty headerTitle to hide the text
+    (navigation as any)?.setOptions?.({ headerTitle: '' });
+  }, [navigation]);
 
   const [formData, setFormData] = useState<DailyLogData>({
     trafficUsage: {
@@ -289,6 +298,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 50,
+    backgroundColor: '#4CAF50', // Thêm màu xanh lá
   },
   title: {
     fontSize: 24,

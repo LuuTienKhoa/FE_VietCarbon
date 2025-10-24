@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -60,6 +60,7 @@ const HistoryScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
 
   const getUserId = async () => {
     try {
@@ -101,6 +102,12 @@ const HistoryScreen = () => {
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
+  
+  useLayoutEffect(() => {
+    // setOptions exists on the navigation object provided by react-navigation
+    // we set an empty headerTitle to hide the text
+    (navigation as any)?.setOptions?.({ headerTitle: '' });
+  }, [navigation]);
 
   const totalAmount = useMemo(() => transactions.reduce((s, t) => s + (t.amount ?? 0), 0), [transactions]);
 
