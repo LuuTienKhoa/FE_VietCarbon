@@ -84,9 +84,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ isLoading: true });
       
       // Clear AsyncStorage
+      // Remove both new keys and legacy keys used elsewhere in the app
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.USER,
         STORAGE_KEYS.TOKEN,
+        'auth_token',
+        'auth_user',
+        'user',
       ]);
       
       // Clear state

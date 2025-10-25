@@ -1,7 +1,7 @@
 // app/(tabs)/profile.tsx
 import { ScreenWrapper } from '@/components/wrapper';
 import { User, apiService } from '@/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -54,11 +54,15 @@ export default function ProfileScreen() {
     fetchMe();
   }, [fetchMe]);
 
+  const { logout: storeLogout } = useUserStore();
+
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('auth_token');
+      // Use centralized logout which clears both new and legacy keys and clears API token
+      await storeLogout();
       router.replace('/login');
-    } catch {
+    } catch (err) {
+      console.error('Logout failed', err);
       Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
     }
   };
