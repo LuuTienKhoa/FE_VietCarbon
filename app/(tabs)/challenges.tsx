@@ -455,49 +455,49 @@ export default function ChallengesScreen() {
   };
 
   /* ===== CTA nhận gợi ý ===== */
-  const SuggestionCTA = () => {
-    return (
-      <View style={styles.suggCTA}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <IconSymbol name="lightbulb.fill" size={16} color="#111" />
-          <ThemedText style={{ fontWeight: '900' }}>Gợi ý cho hôm nay</ThemedText>
-        </View>
-        <ThemedText style={{ opacity: 0.7, marginTop: 6 }}>
-          Nhấn để xem gợi ý tối ưu theo hoạt động gần đây.
-        </ThemedText>
+  // const SuggestionCTA = () => {
+  //   return (
+  //     <View style={styles.suggCTA}>
+  //       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+  //         <IconSymbol name="lightbulb.fill" size={16} color="#111" />
+  //         <ThemedText style={{ fontWeight: '900' }}>Gợi ý cho hôm nay</ThemedText>
+  //       </View>
+  //       <ThemedText style={{ opacity: 0.7, marginTop: 6 }}>
+  //         Nhấn để xem gợi ý tối ưu theo hoạt động gần đây.
+  //       </ThemedText>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-          <TouchableOpacity
-            style={styles.suggPrimaryBtn}
-            onPress={async () => {
-              setRecVisible(true);
-              if (!recText) {
-                const cached = await AsyncStorage.getItem(REC_CACHE_KEY);
-                if (cached) {
-                  setRecText(cached);
-                } else {
-                  await fetchRecommendation();
-                }
-              }
-            }}
-          >
-            <ThemedText style={styles.suggPrimaryBtnText}>
-              Nhận gợi ý
-            </ThemedText>
-          </TouchableOpacity>
+  //       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+  //         <TouchableOpacity
+  //           style={styles.suggPrimaryBtn}
+  //           onPress={async () => {
+  //             setRecVisible(true);
+  //             if (!recText) {
+  //               const cached = await AsyncStorage.getItem(REC_CACHE_KEY);
+  //               if (cached) {
+  //                 setRecText(cached);
+  //               } else {
+  //                 await fetchRecommendation();
+  //               }
+  //             }
+  //           }}
+  //         >
+  //           <ThemedText style={styles.suggPrimaryBtnText}>
+  //             Nhận gợi ý
+  //           </ThemedText>
+  //         </TouchableOpacity>
 
-          {!!recText && (
-            <TouchableOpacity
-              style={styles.suggGhostBtn}
-              onPress={() => setRecVisible(true)}
-            >
-              <ThemedText style={styles.suggGhostBtnText}>Xem lại</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  };
+  //         {!!recText && (
+  //           <TouchableOpacity
+  //             style={styles.suggGhostBtn}
+  //             onPress={() => setRecVisible(true)}
+  //           >
+  //             <ThemedText style={styles.suggGhostBtnText}>Xem lại</ThemedText>
+  //           </TouchableOpacity>
+  //         )}
+  //       </View>
+  //     </View>
+  //   );
+  // };
 
   // ===== Header phần hero + stats (không sticky) =====
   const HeroHeader = () => (
@@ -527,7 +527,7 @@ export default function ChallengesScreen() {
         </View>
       </View>
 
-      <SuggestionCTA />
+      {/* <SuggestionCTA /> */}
     </View>
   );
 
