@@ -1,10 +1,10 @@
 // app/measure.tsx
 import { ThemedText } from '@/components/themed-text';
-import { ScreenWrapper } from '@/components/wrapper';
 import { apiService, FoodCategory, PlasticCategory, TrafficCategory } from '@/services/api';
 import { useNavigation } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
-import { useLayoutEffect, useState } from 'react';
+import { LinearGradient } from "expo-linear-gradient";
+import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -63,13 +63,6 @@ export default function DailyLogScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Hide the header title (file name 'measure') while keeping the back button
-  useLayoutEffect(() => {
-    // setOptions exists on the navigation object provided by react-navigation
-    // we set an empty headerTitle to hide the text
-    (navigation as any)?.setOptions?.({ headerTitle: '' });
-  }, [navigation]);
 
   const [formData, setFormData] = useState<DailyLogData>({
     trafficUsage: {
@@ -180,7 +173,14 @@ export default function DailyLogScreen() {
 
 
   return (
-    <ScreenWrapper>
+    <LinearGradient colors={["#d9f99d", "#bbf7d0"]} >
+            <Stack.Screen
+        options={{
+          title: ' ',
+          headerTitleStyle: { fontWeight: '800' },
+          headerTintColor: '#0f2610',
+        }}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <ThemedText style={styles.title}>Ghi nhận hoạt động hàng ngày</ThemedText>
         
@@ -290,7 +290,7 @@ export default function DailyLogScreen() {
             )}
         </TouchableOpacity>
       </ScrollView>
-    </ScreenWrapper>
+    </LinearGradient>
   );
 }
 
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 50,
-    backgroundColor: '#4CAF50', // Thêm màu xanh lá
+    backgroundColor: '#c5ff9b', // Thêm màu xanh lá
   },
   title: {
     fontSize: 24,

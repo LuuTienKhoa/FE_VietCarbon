@@ -3,7 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Stack } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -103,12 +104,6 @@ const HistoryScreen = () => {
     fetchTransactions();
   }, [fetchTransactions]);
   
-  useLayoutEffect(() => {
-    // setOptions exists on the navigation object provided by react-navigation
-    // we set an empty headerTitle to hide the text
-    (navigation as any)?.setOptions?.({ headerTitle: '' });
-  }, [navigation]);
-
   const totalAmount = useMemo(() => transactions.reduce((s, t) => s + (t.amount ?? 0), 0), [transactions]);
 
   if (loading)
@@ -130,7 +125,15 @@ const HistoryScreen = () => {
     );
 
   return (
+    
     <LinearGradient colors={["#e0fce0", "#b4f2a7"]} style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          title: ' ',
+          headerTitleStyle: { fontWeight: '800' },
+          headerTintColor: '#0f2610',
+        }}
+      />
       {/* Header */}
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>💳 Lịch sử giao dịch</Text>

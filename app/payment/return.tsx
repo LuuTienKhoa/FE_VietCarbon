@@ -1,8 +1,8 @@
 // app/payment/return.tsx
 import { me, paymentReturn } from '@/services/userApi'; // bạn tạo hàm gọi BE bên dưới
 import { useNavigation } from "@react-navigation/native";
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type PayOsReturn = {
@@ -48,11 +48,7 @@ export default function PaymentReturnScreen() {
     };
   }, [params]);
 
-  useLayoutEffect(() => {
-    // setOptions exists on the navigation object provided by react-navigation
-    // we set an empty headerTitle to hide the text
-    (navigation as any)?.setOptions?.({ headerTitle: '' });
-}, [navigation]);
+
 
   useEffect(() => {
     (async () => {
@@ -108,6 +104,13 @@ export default function PaymentReturnScreen() {
 
   return (
     <View style={styles.center}>
+      <Stack.Screen
+        options={{
+          title: ' ',
+          headerTitleStyle: { fontWeight: '800' },
+          headerTintColor: '#0f2610',
+        }}
+      />
       {/* <Text style={[styles.title, { color: ok ? '#065f46' : '#7f1d1d' }]}>
         {ok ? '✔ Thanh toán thành công' : '✖ Thanh toán không thành công'}
       </Text> */}

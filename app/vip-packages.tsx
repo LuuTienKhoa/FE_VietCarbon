@@ -154,11 +154,7 @@ export default function VipPackages() {
             <TouchableOpacity style={[styles.cta, styles.ctaDisabled]} disabled>
               <Text style={[styles.ctaText, { opacity: 0.6 }]}>Chưa khả dụng</Text>
             </TouchableOpacity>
-          </LinearGradient>
-
-          <TouchableOpacity style={styles.paymentsLink} onPress={() => router.push('/payments')}>
-            <Text style={styles.paymentsText}>Payments</Text>
-          </TouchableOpacity>
+          </LinearGradient>         
           
         </ScrollView>
       </View>
