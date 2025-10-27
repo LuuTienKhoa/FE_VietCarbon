@@ -19,7 +19,6 @@ import {
 import { userApi } from "@/services/api";
 import { setAuthToken } from "@/services/http";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 
 export default function LoginScreen() {
@@ -94,47 +93,47 @@ export default function LoginScreen() {
 
 
   // ======= GOOGLE LOGIN =======
-  useEffect(() => {
-    GoogleSignin.configure({
-      webClientId:
-        "177492215827-jqsec57up3u7luccl2hifo9t73b4e9ut.apps.googleusercontent.com",
+  // useEffect(() => {
+  //   GoogleSignin.configure({
+  //     webClientId:
+  //       "177492215827-jqsec57up3u7luccl2hifo9t73b4e9ut.apps.googleusercontent.com",
         
-      offlineAccess: false,
-    });
-  }, []);
+  //     offlineAccess: false,
+  //   });
+  // }, []);
 
-  async function handleGoogleLogin() {
-    try { 
-      setSubmitting(true);
-      await AsyncStorage.removeItem("auth_token");
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      await GoogleSignin.signOut(); // Đảm bảo đăng nhập lại mỗi lần
-      const userInfo: any = await GoogleSignin.signIn();
-      let idToken: string | undefined = userInfo?.idToken;
-      if (!idToken) {
-        const tokens = await GoogleSignin.getTokens();
-        idToken = tokens?.idToken;
-      }
-      if (!idToken) throw new Error("Không lấy được idToken từ Google");
+  // async function handleGoogleLogin() {
+  //   try { 
+  //     setSubmitting(true);
+  //     await AsyncStorage.removeItem("auth_token");
+  //     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  //     await GoogleSignin.signOut(); // Đảm bảo đăng nhập lại mỗi lần
+  //     const userInfo: any = await GoogleSignin.signIn();
+  //     let idToken: string | undefined = userInfo?.idToken;
+  //     if (!idToken) {
+  //       const tokens = await GoogleSignin.getTokens();
+  //       idToken = tokens?.idToken;
+  //     }
+  //     if (!idToken) throw new Error("Không lấy được idToken từ Google");
 
-      const res = await userApi.googleLogin(idToken);
-      if (!res.success || !res.data) {
-        throw new Error(res.error || res.message || "Google login failed");
-      }
+  //     const res = await userApi.googleLogin(idToken);
+  //     if (!res.success || !res.data) {
+  //       throw new Error(res.error || res.message || "Google login failed");
+  //     }
 
-      const { token, user } = res.data;
-      await AsyncStorage.setItem("auth_token", token);
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+  //     const { token, user } = res.data;
+  //     await AsyncStorage.setItem("auth_token", token);
+  //     await AsyncStorage.setItem("user", JSON.stringify(user));
 
-      showMessage({ type: "success", message: "Đăng nhập Google thành công!" });
-      router.replace("/"); // ✅ vào tabs
-    } catch (err: any) {
-      console.log("Google login error:", err?.message || err);
-      showMessage({ type: "error", message: "Đăng nhập Google thất bại" });
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  //     showMessage({ type: "success", message: "Đăng nhập Google thành công!" });
+  //     router.replace("/"); // ✅ vào tabs
+  //   } catch (err: any) {
+  //     console.log("Google login error:", err?.message || err);
+  //     showMessage({ type: "error", message: "Đăng nhập Google thất bại" });
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // }
 
   // ======= UI =======
   return (
@@ -240,7 +239,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Google */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={handleGoogleLogin}
               activeOpacity={0.85}
               style={[styles.googleBtn, submitting && styles.disabled]}
@@ -250,7 +249,7 @@ export default function LoginScreen() {
             >
               <Image source={require("../assets/images/google.png")} style={styles.googleIcon} />
               <Text style={styles.googleText}>Tiếp tục với Google</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* Đăng ký */}
             <TouchableOpacity onPress={() => router.push("/register")} accessibilityRole="button">
