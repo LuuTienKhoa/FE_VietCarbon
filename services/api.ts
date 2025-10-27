@@ -188,6 +188,7 @@ export const apiService = {
     remove: userActivitiesApi.remove,
     getByUserId: userActivitiesApi.getByUserId,
     getLeaderBoard: userActivitiesApi.getLeaderBoard,
+    getLeaderBoardSnapshot: userActivitiesApi.getLeaderBoardSnapshot,
   },
 
   // Notification APIs
@@ -268,16 +269,16 @@ export const apiService = {
 
 // Export individual services for backward compatibility
 export {
-  challengeApi,
-  challengeProgressApi,
-  energyUsageApi,
-  foodUsageApi,
-  notifyApi,
-  plasticUsageApi,
-  recommendApi,
-  trafficUsageApi,
-  transactionApi,
-  userActivitiesApi,
-  userApi
+    challengeApi,
+    challengeProgressApi,
+    energyUsageApi,
+    foodUsageApi,
+    notifyApi,
+    plasticUsageApi,
+    recommendApi,
+    trafficUsageApi,
+    transactionApi,
+    userActivitiesApi,
+    userApi
 };
 

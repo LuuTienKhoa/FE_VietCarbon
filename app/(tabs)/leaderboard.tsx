@@ -225,6 +225,7 @@ const ScreenWrapper = ({
 
 /* ================= Screen ================= */
 export default function LeaderboardScreen() {
+  const [rankingType, setRankingType] = useState<'daily' | 'weekly'>('daily');
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
     []
   );
@@ -236,7 +237,7 @@ export default function LeaderboardScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiService.userActivities.getLeaderBoard();
+      const res = await apiService.userActivities.getLeaderBoardSnapshot(rankingType);
       if (res.success && res.data) {
         const mappedData: LeaderboardEntry[] = res.data.map((d: any) => ({
           userName: d.userName || d.username || "Unknown",
@@ -265,7 +266,7 @@ export default function LeaderboardScreen() {
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [fetchLeaderboard]);
+  }, [fetchLeaderboard, rankingType]);
 
   const top3 = useMemo(() => leaderboardData.slice(0, 3), [leaderboardData]);
   const others = useMemo(() => leaderboardData.slice(3), [leaderboardData]);
@@ -275,6 +276,39 @@ export default function LeaderboardScreen() {
     <>
       <View style={styles.hero}>
         <ThemedText style={styles.title}>Bảng Xếp Hạng</ThemedText>
+        
+        {/* Ranking Type Selector */}
+        <View style={styles.typeSelector}>
+          <TouchableOpacity 
+            style={[
+              styles.typeButton, 
+              rankingType === 'daily' && styles.typeButtonActive
+            ]}
+            onPress={() => setRankingType('daily')}
+          >
+            <ThemedText style={[
+              styles.typeText,
+              rankingType === 'daily' && styles.typeTextActive
+            ]}>
+              Hôm nay
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.typeButton, 
+              rankingType === 'weekly' && styles.typeButtonActive
+            ]}
+            onPress={() => setRankingType('weekly')}
+          >
+            <ThemedText style={[
+              styles.typeText,
+              rankingType === 'weekly' && styles.typeTextActive
+            ]}>
+              Tuần này
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
         <ThemedText style={styles.subtitle}>
           Cùng thi đua bảo vệ hành tinh 🌍 — giữ streak và khoe huy hiệu!
         </ThemedText>
@@ -376,6 +410,36 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    backgroundColor: rankColors.line,
+    borderRadius: 12,
+    padding: 4,
+    marginHorizontal: 40,
+    marginVertical: 12,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  typeButtonActive: {
+    backgroundColor: rankColors.card,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  typeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: rankColors.muted,
+  },
+  typeTextActive: {
+    color: rankColors.text,
+    fontWeight: '700',
   },
   errorText: { color: "#E11D48", fontWeight: "700" },
 

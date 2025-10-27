@@ -99,7 +99,14 @@ async function getByUserId(userId: number): Promise<ApiResponse<UserActivities[]
 
 async function getLeaderBoard(): Promise<ApiResponse<LeaderboardEntry[]>> {
   const res = await wrap<LeaderboardEntry[]>(() => 
-    http.get('/UserActivities/LeaderBoard') // <-- ĐÃ SỬA LỖI
+    http.get('/UserActivities/LeaderBoard')
+  );
+  return res;
+}
+
+async function getLeaderBoardSnapshot(type: string): Promise<ApiResponse<LeaderboardEntry[]>> {
+  const res = await wrap<LeaderboardEntry[]>(() => 
+    http.get(`/Leaderboard/snapshot/${type}`)
   );
   return res;
 }
@@ -111,5 +118,6 @@ export const userActivitiesApi = {
   update, 
   remove, 
   getByUserId, 
-  getLeaderBoard 
+  getLeaderBoard,
+  getLeaderBoardSnapshot
 };
