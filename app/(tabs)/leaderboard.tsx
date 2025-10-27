@@ -157,10 +157,10 @@ const LeaderboardItem = ({
       useNativeDriver: true,
     }).start();
 
-  // progress % so với top 1
+  // progress % so với người có CO2 cao nhất (số càng nhỏ càng tốt)
   const percent =
     leaderMax > 0
-      ? Math.min(100, Math.round((item.totalCO2Emission / leaderMax) * 100))
+      ? Math.min(100, Math.round((1 - item.totalCO2Emission / leaderMax) * 100))
       : 0;
 
   return (
@@ -243,9 +243,9 @@ export default function LeaderboardScreen() {
           userName: d.userName || d.username || "Unknown",
           totalCO2Emission: d.totalCO2Emission ?? d.co2Emission ?? 0,
         }));
-        // GIỮ NGUYÊN logic sort hiện tại (desc)
+        // Sắp xếp theo thứ tự tăng dần (người có CO2 thấp nhất xếp hạng cao nhất)
         const sortedData = mappedData.sort(
-          (a, b) => b.totalCO2Emission - a.totalCO2Emission
+          (a, b) => a.totalCO2Emission - b.totalCO2Emission
         );
         setLeaderboardData(sortedData);
       } else {
@@ -270,7 +270,8 @@ export default function LeaderboardScreen() {
 
   const top3 = useMemo(() => leaderboardData.slice(0, 3), [leaderboardData]);
   const others = useMemo(() => leaderboardData.slice(3), [leaderboardData]);
-  const leaderMax = leaderboardData[0]?.totalCO2Emission ?? 0;
+  // Lấy giá trị CO2 cao nhất để tính phần trăm (số càng thấp càng tốt)
+  const leaderMax = leaderboardData[leaderboardData.length - 1]?.totalCO2Emission ?? 0;
 
   const renderHeader = () => (
     <>
